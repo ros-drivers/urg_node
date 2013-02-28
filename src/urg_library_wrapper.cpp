@@ -74,3 +74,22 @@ URGLibraryWrapper::~URGLibraryWrapper(){
 	free(intensity_);
 	urg_close(&urg_);
 }
+
+double URGLibraryWrapper::getMinAngle(){
+  int min_step;
+  int max_step;
+  urg_step_min_max(&urg_, &min_step, &max_step);
+  return urg_step2rad(&urg_, min_step);
+}
+
+double URGLibraryWrapper::getMaxAngle(){
+  int min_step;
+  int max_step;
+  urg_step_min_max(&urg_, &min_step, &max_step);
+  return urg_step2rad(&urg_, max_step);
+}
+
+double URGLibraryWrapper::getScanTime(){
+  long scan_usec = urg_scan_usec(&urg_);
+  return 1.e-6*(double)(scan_usec);
+}

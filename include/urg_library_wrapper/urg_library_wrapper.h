@@ -54,6 +54,12 @@ namespace urg_library_wrapper
 
     ~URGLibraryWrapper();
 
+    double getMinAngle();
+
+    double getMaxAngle();
+
+    double getScanTime();
+
   private:
     std::string frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
 

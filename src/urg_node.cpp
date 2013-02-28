@@ -35,13 +35,34 @@
 
 #include <tf/tf.h> // tf header for resolving tf prefix
 #include <dynamic_reconfigure/server.h>
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/MultiEchoLaserScan.h>
 #include <urg_library_wrapper/URGConfig.h>
 
 #include <urg_library_wrapper/urg_library_wrapper.h>
 
 boost::shared_ptr<urg_library_wrapper::URGLibraryWrapper> urg_;
+
+boost::shared_ptr<dynamic_reconfigure::Server<urg_library_wrapper::URGConfig> > srv_; ///< Dynamic reconfigure server
+
+bool reconfigure_callback(urg_library_wrapper::URGConfig& config, uint32_t level){
+  ROS_INFO("Reconfigure Callback");
+  return true;
+}
+
+void update_reconfigure_limits(){
+  ROS_INFO("Update reconfigure limits");
+  urg_library_wrapper::URGConfig min, max;
+  srv_->getConfigMin(min);
+  srv_->getConfigMax(max);
+
+  /// @TODO Figure out the minimum range between min and max
+  min.angle_min = urg_->getMinAngle();
+  min.angle_max = min.angle_min + 0.1;
+  max.angle_max = urg_->getMaxAngle();
+  max.angle_min = max.angle_max - 0.1;
+  
+  srv_->setConfigMin(min);
+  srv_->setConfigMax(max);
+}
 
 int main(int argc, char **argv)
 {
@@ -91,6 +112,18 @@ int main(int argc, char **argv)
       ros::Duration(1.0).sleep();
       ros::shutdown();
     }
+
+  // Set up dynamic reconfigure
+  srv_.reset(new dynamic_reconfigure::Server<urg_library_wrapper::URGConfig>());
+
+  // Configure limits (Must do this after creating the urgwidget)
+  update_reconfigure_limits();
+
+  dynamic_reconfigure::Server<urg_library_wrapper::URGConfig>::CallbackType f;
+  f = boost::bind(reconfigure_callback, _1, _2);
+  srv_->setCallback(f);
+
+  ros::spin();
 
   return EXIT_SUCCESS;
 }
