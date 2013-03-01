@@ -96,7 +96,7 @@ void URGLibraryWrapper::initialize(bool& using_intensity, bool& using_multiecho)
 
 void URGLibraryWrapper::start(){
 	if(!started_){
-		int result = urg_start_measurement(&urg_, measurement_type_, 0, 0);
+		int result = urg_start_measurement(&urg_, measurement_type_, 0, skip_);
 		if (result < 0) {
 	      std::stringstream ss;
 	      ss << "Could not start Hokuyo measurement:\n";
@@ -272,7 +272,7 @@ double URGLibraryWrapper::getAngleMaxLimit(){
 double URGLibraryWrapper::getAngleIncrement(){
   double angle_min = getAngleMin();
   double angle_max = getAngleMax();
-  return (angle_max-angle_min)/(double)(last_step_-first_step_);
+  return cluster_*(angle_max-angle_min)/(double)(last_step_-first_step_);
 }
 
 double URGLibraryWrapper::getScanPeriod(){
@@ -298,7 +298,7 @@ void URGLibraryWrapper::setUserLatency(const double latency){
 }
 
 // Must be called before urg_start
-bool URGLibraryWrapper::setAngleLimitsAndSkip(double& angle_min, double& angle_max, int skip){
+bool URGLibraryWrapper::setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster){
   if(started_){
   	return false; // Must not be streaming
   }
@@ -306,6 +306,7 @@ bool URGLibraryWrapper::setAngleLimitsAndSkip(double& angle_min, double& angle_m
   // Set step limits
   first_step_ = urg_rad2step(&urg_, angle_min);
   last_step_ = urg_rad2step(&urg_, angle_max);
+  cluster_ = cluster;
 
   // Make sure step limits are not the same
   if(first_step_ == last_step_){
@@ -329,11 +330,15 @@ bool URGLibraryWrapper::setAngleLimitsAndSkip(double& angle_min, double& angle_m
 
   angle_min = urg_step2rad(&urg_, first_step_);
   angle_max = urg_step2rad(&urg_, last_step_);
-  int result = urg_set_scanning_parameter(&urg_, first_step_, last_step_, skip);
+  int result = urg_set_scanning_parameter(&urg_, first_step_, last_step_, cluster);
   if(result < 0){
     return false;
   }
   return true;
+}
+
+bool URGLibraryWrapper::setSkip(int skip){
+	skip_ = skip;
 }
 
 bool URGLibraryWrapper::isIntensitySupported(){

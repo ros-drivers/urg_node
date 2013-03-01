@@ -49,7 +49,8 @@ bool reconfigure_callback(urg_library_wrapper::URGConfig& config, uint32_t level
     ROS_INFO("Stopped data due to reconfigure.");
     
     // Change values that required stopping
-    urg_->setAngleLimitsAndSkip(config.angle_min, config.angle_max, config.skip);
+    urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
+    urg_->setSkip(config.skip);
 
     try{
       urg_->start();

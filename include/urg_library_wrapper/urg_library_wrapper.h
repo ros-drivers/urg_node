@@ -81,7 +81,9 @@ namespace urg_library_wrapper
 
     void setUserLatency(const double latency);
 
-    bool setAngleLimitsAndSkip(double& angle_min, double& angle_max, int skip);
+    bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
+
+    bool setSkip(int skip);
 
     bool grabScan(const sensor_msgs::LaserScanPtr& msg);
 
@@ -107,6 +109,8 @@ namespace urg_library_wrapper
     urg_measurement_type_t measurement_type_;
     int first_step_;
     int last_step_;
+    int cluster_;
+    int skip_;
 
     ros::Duration system_latency_;
     ros::Duration user_latency_;
