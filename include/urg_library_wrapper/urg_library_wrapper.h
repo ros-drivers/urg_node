@@ -36,6 +36,7 @@
 
 #include <stdexcept>
 #include <sstream>
+#include <limits>
 
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/MultiEchoLaserScan.h>
@@ -48,24 +49,48 @@ namespace urg_library_wrapper
   class URGLibraryWrapper
   {
   public:
-    URGLibraryWrapper(const std::string& ip_address, const int ip_port);
+    URGLibraryWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
 
-    URGLibraryWrapper(const int serial_baud, const std::string& serial_port);
+    URGLibraryWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
 
     ~URGLibraryWrapper();
 
-    double getMinAngle();
+    double getRangeMin();
 
-    double getMaxAngle();
+    double getRangeMax();
 
-    double getScanTime();
+    double getAngleMin();
+
+    double getAngleMax();
+
+    double getAngleIncrement();
+
+    double getScanPeriod();
+
+    double getTimeIncrement();
+
+    void setFrameId(const std::string& frame_id);
+
+    bool grabScan(const sensor_msgs::LaserScanPtr& msg);
+
+    bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
 
   private:
+    void initialize(bool& using_intensity, bool& using_multiecho);
+
+    void start(bool& using_intensity, bool& using_multiecho);
+
+    bool isIntensitySupported();
+
+    bool isMultiEchoSupported();
+
     std::string frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
 
     urg_t urg_;
-    long *data_; /// @TODO Look into std::vectors instead?
-    unsigned short *intensity_;
+    std::vector<long> data_;
+    std::vector<unsigned short> intensity_;
+    bool use_intensity_;
+    bool use_multiecho_;
   };
   
   
