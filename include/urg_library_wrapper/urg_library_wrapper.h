@@ -55,6 +55,10 @@ namespace urg_library_wrapper
 
     ~URGLibraryWrapper();
 
+    void start();
+
+    void stop();
+
     double getRangeMin();
 
     double getRangeMax();
@@ -62,6 +66,10 @@ namespace urg_library_wrapper
     double getAngleMin();
 
     double getAngleMax();
+
+    double getAngleMinLimit();
+
+    double getAngleMaxLimit();
 
     double getAngleIncrement();
 
@@ -71,14 +79,16 @@ namespace urg_library_wrapper
 
     void setFrameId(const std::string& frame_id);
 
+    void setUserLatency(const double latency);
+
+    bool setAngleLimitsAndSkip(double& angle_min, double& angle_max, int skip);
+
     bool grabScan(const sensor_msgs::LaserScanPtr& msg);
 
     bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
 
   private:
     void initialize(bool& using_intensity, bool& using_multiecho);
-
-    void start(bool& using_intensity, bool& using_multiecho);
 
     bool isIntensitySupported();
 
@@ -87,10 +97,19 @@ namespace urg_library_wrapper
     std::string frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
 
     urg_t urg_;
+    bool started_;
+
     std::vector<long> data_;
     std::vector<unsigned short> intensity_;
+
     bool use_intensity_;
     bool use_multiecho_;
+    urg_measurement_type_t measurement_type_;
+    int first_step_;
+    int last_step_;
+
+    ros::Duration system_latency_;
+    ros::Duration user_latency_;
   };
   
   

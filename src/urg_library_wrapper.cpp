@@ -79,44 +79,52 @@ void URGLibraryWrapper::initialize(bool& using_intensity, bool& using_multiecho)
     	using_multiecho = isMultiEchoSupported();
     }
 
-    start(using_intensity, using_multiecho);
-}
-
-void URGLibraryWrapper::start(bool& using_intensity, bool& using_multiecho){
-	use_intensity_ = using_intensity;
+    use_intensity_ = using_intensity;
 	use_multiecho_ = using_multiecho;
 
-	urg_measurement_type_t type = URG_DISTANCE;
+	measurement_type_ = URG_DISTANCE;
 	if(use_intensity_ && use_multiecho_){
-		type = URG_MULTIECHO_INTENSITY;
+		measurement_type_ = URG_MULTIECHO_INTENSITY;
 	} else if(use_intensity_){
-	    type = URG_DISTANCE_INTENSITY;
+	    measurement_type_ = URG_DISTANCE_INTENSITY;
 	} else if(use_multiecho_){
-		type = URG_MULTIECHO;
-	} else {
+		measurement_type_ = URG_MULTIECHO;
 	}
-	int result = urg_start_measurement(&urg_, type, 0, 0);
-	if (result < 0) {
-      std::stringstream ss;
-      ss << "Could not start Hokuyo measurement:\n";
-      if(use_intensity_){
-      	ss << "With Intensity" << "\n";
-      }
-      if(use_multiecho_){
-      	ss << "With MultiEcho" << "\n";
-      }
-      ss << urg_error(&urg_);
-      throw std::runtime_error(ss.str());
+
+	started_ = false;
+}
+
+void URGLibraryWrapper::start(){
+	if(!started_){
+		int result = urg_start_measurement(&urg_, measurement_type_, 0, 0);
+		if (result < 0) {
+	      std::stringstream ss;
+	      ss << "Could not start Hokuyo measurement:\n";
+	      if(use_intensity_){
+	      	ss << "With Intensity" << "\n";
+	      }
+	      if(use_multiecho_){
+	      	ss << "With MultiEcho" << "\n";
+	      }
+	      ss << urg_error(&urg_);
+	      throw std::runtime_error(ss.str());
+	    }
     }
+    started_ = true;
+}
+
+void URGLibraryWrapper::stop(){
+	urg_stop_measurement(&urg_);
+	started_ = false;
 }
 
 URGLibraryWrapper::~URGLibraryWrapper(){
-	urg_stop_measurement(&urg_);
+	stop();
 	urg_close(&urg_);
 }
 
 bool URGLibraryWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
-  msg->header.stamp = ros::Time::now();
+  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_;
   msg->header.frame_id = frame_id_;
 
   msg->angle_min = getAngleMin();
@@ -161,7 +169,7 @@ bool URGLibraryWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
 }
 
 bool URGLibraryWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
-  msg->header.stamp = ros::Time::now();
+  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_;
   msg->header.frame_id = frame_id_;
 
   msg->angle_min = getAngleMin();
@@ -240,13 +248,21 @@ double URGLibraryWrapper::getRangeMax(){
 }
 
 double URGLibraryWrapper::getAngleMin(){
+  return urg_step2rad(&urg_, first_step_);
+}
+
+double URGLibraryWrapper::getAngleMax(){
+  return urg_step2rad(&urg_, last_step_);
+}
+
+double URGLibraryWrapper::getAngleMinLimit(){
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
   return urg_step2rad(&urg_, min_step);
 }
 
-double URGLibraryWrapper::getAngleMax(){
+double URGLibraryWrapper::getAngleMaxLimit(){
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
@@ -254,12 +270,9 @@ double URGLibraryWrapper::getAngleMax(){
 }
 
 double URGLibraryWrapper::getAngleIncrement(){
-  int min_step;
-  int max_step;
-  urg_step_min_max(&urg_, &min_step, &max_step);
   double angle_min = getAngleMin();
   double angle_max = getAngleMax();
-  return (angle_max-angle_min)/(double)(max_step-min_step);
+  return (angle_max-angle_min)/(double)(last_step_-first_step_);
 }
 
 double URGLibraryWrapper::getScanPeriod(){
@@ -277,10 +290,57 @@ double URGLibraryWrapper::getTimeIncrement(){
 }
 
 void URGLibraryWrapper::setFrameId(const std::string& frame_id){
-	frame_id_ = frame_id;
+  frame_id_ = frame_id;
+}
+
+void URGLibraryWrapper::setUserLatency(const double latency){
+  user_latency_.fromSec(latency);
+}
+
+// Must be called before urg_start
+bool URGLibraryWrapper::setAngleLimitsAndSkip(double& angle_min, double& angle_max, int skip){
+  if(started_){
+  	return false; // Must not be streaming
+  }
+
+  // Set step limits
+  first_step_ = urg_rad2step(&urg_, angle_min);
+  last_step_ = urg_rad2step(&urg_, angle_max);
+
+  // Make sure step limits are not the same
+  if(first_step_ == last_step_){
+  	// Make sure we're not at a limit
+  	int min_step;
+	int max_step;
+	urg_step_min_max(&urg_, &min_step, &max_step);
+	if(first_step_ == min_step){ // At beginning of range
+		last_step_ = first_step_ + 1;
+	} else { // At end of range (or all other cases)
+		first_step_ = last_step_ - 1;
+	} 
+  }
+
+  // Make sure angle_max is greater than angle_min (should check this after end limits)
+  if(last_step_ < first_step_){
+  	double temp = first_step_;
+  	first_step_ = last_step_;
+  	last_step_ = temp;
+  }
+
+  angle_min = urg_step2rad(&urg_, first_step_);
+  angle_max = urg_step2rad(&urg_, last_step_);
+  int result = urg_set_scanning_parameter(&urg_, first_step_, last_step_, skip);
+  if(result < 0){
+    return false;
+  }
+  return true;
 }
 
 bool URGLibraryWrapper::isIntensitySupported(){
+  if(started_){
+  	return false; // Must not be streaming
+  }
+
   std::vector<long> data;
   long time_stamp;
 
@@ -295,6 +355,10 @@ bool URGLibraryWrapper::isIntensitySupported(){
 }
 
 bool URGLibraryWrapper::isMultiEchoSupported(){
+  if(started_){
+  	return false; // Must not be streaming
+  }
+
   long time_stamp;
 
   urg_start_measurement(&urg_, URG_MULTIECHO, 0, 0);

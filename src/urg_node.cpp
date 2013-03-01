@@ -44,6 +44,29 @@ boost::shared_ptr<urg_library_wrapper::URGLibraryWrapper> urg_;
 boost::shared_ptr<dynamic_reconfigure::Server<urg_library_wrapper::URGConfig> > srv_; ///< Dynamic reconfigure server
 
 bool reconfigure_callback(urg_library_wrapper::URGConfig& config, uint32_t level){
+  if(level > 0){ // Must stop
+    urg_->stop();
+    ROS_INFO("Stopped data due to reconfigure.");
+    
+    // Change values that required stopping
+    urg_->setAngleLimitsAndSkip(config.angle_min, config.angle_max, config.skip);
+
+    try{
+      urg_->start();
+      ROS_INFO("Streaming data after reconfigure.");
+    } catch(std::runtime_error& e){
+      ROS_FATAL("%s", e.what());
+      ros::spinOnce();
+      ros::Duration(1.0).sleep();
+      ros::shutdown();
+      return false;
+    }
+  }
+
+  std::string frame_id = tf::resolve(config.tf_prefix, config.frame_id);
+  urg_->setFrameId(frame_id);
+  urg_->setUserLatency(config.time_offset);
+
   return true;
 }
 
@@ -53,10 +76,10 @@ void update_reconfigure_limits(){
   srv_->getConfigMax(max);
 
   /// @TODO Figure out the minimum range between min and max
-  min.angle_min = urg_->getAngleMin();
-  min.angle_max = min.angle_min + 0.1;
-  max.angle_max = urg_->getAngleMax();
-  max.angle_min = max.angle_max - 0.1;
+  min.angle_min = urg_->getAngleMinLimit();
+  min.angle_max = min.angle_min;
+  max.angle_max = urg_->getAngleMaxLimit();
+  max.angle_min = max.angle_max;
   
   srv_->setConfigMin(min);
   srv_->setConfigMax(max);
@@ -69,7 +92,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::NodeHandle pnh("~");
 
-  ros::Publisher laser_pub = n.advertise<sensor_msgs::LaserScan>("first", 20);
+  ros::Publisher laser_pub = n.advertise<sensor_msgs::LaserScan>("scan", 20);
   ros::Publisher echoes_pub = n.advertise<sensor_msgs::MultiEchoLaserScan>("echoes", 20);
   
   // Get parameters so we can change these later.
@@ -85,9 +108,8 @@ int main(int argc, char **argv)
 
   std::string tf_prefix;
   pnh.param<std::string>("tf_prefix", tf_prefix, "");
-  std::string frame_id;
-  pnh.param<std::string>("frame_id", frame_id, "laser");
-  frame_id = tf::resolve(tf_prefix, frame_id);
+  
+
 
   bool calibrate_time;
   pnh.param<bool>("calibrate_time", calibrate_time, true);
@@ -95,17 +117,17 @@ int main(int argc, char **argv)
   bool publish_intensity;
   pnh.param<bool>("publish_intensity", publish_intensity, true);
 
-  bool publish_multiecho;
+  bool publish_multiecho; /// @TODO Should we always get multiecho and publish through support library?
   pnh.param<bool>("publish_multiecho", publish_multiecho, true);
   
   // Set up the urgwidget
   try{
     if(ip_address != ""){
-      ROS_INFO("Opening network Hokuyo");
       urg_.reset(new urg_library_wrapper::URGLibraryWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
+      ROS_INFO("Connected to network device with ID: ");
     } else {
-      ROS_INFO("Opening serial Hokuyo");
       urg_.reset(new urg_library_wrapper::URGLibraryWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
+      ROS_INFO("Connected to serial device with ID: ");
     }
   } catch(std::runtime_error& e){
       ROS_FATAL("%s", e.what());
@@ -114,7 +136,10 @@ int main(int argc, char **argv)
       ros::shutdown();
   }
 
-  urg_->setFrameId(frame_id);
+  if(calibrate_time){
+    ROS_INFO("Starting calibration. This will take a few seconds.");
+    ROS_INFO("Calibration finished. Latency is: not calculated.");
+  }
 
   // Set up dynamic reconfigure
   srv_.reset(new dynamic_reconfigure::Server<urg_library_wrapper::URGConfig>());
@@ -125,6 +150,16 @@ int main(int argc, char **argv)
   dynamic_reconfigure::Server<urg_library_wrapper::URGConfig>::CallbackType f;
   f = boost::bind(reconfigure_callback, _1, _2);
   srv_->setCallback(f);
+
+  try{
+    urg_->start();
+    ROS_INFO("Streaming data.");
+  } catch(std::runtime_error& e){
+    ROS_FATAL("%s", e.what());
+    ros::spinOnce();
+    ros::Duration(1.0).sleep();
+    ros::shutdown();
+  }
 
   while(ros::ok()){
     if(publish_multiecho){
