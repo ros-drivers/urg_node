@@ -39,38 +39,22 @@ add_executable(urg_node src/urg_node.cpp)
 add_dependencies(urg_node ${PROJECT_NAME}_gencfg)
 target_link_libraries(urg_node urg_c_wrapper ${catkin_LIBRARIES})
 
-## Add dependencies to the executable
-# add_dependencies(urg_library_wrapper_node ${PROJECT_NAME})
-
-## Specify libraries to link a library or executable target against
-# target_link_libraries(urg_library_wrapper_node
-#   ${catkin_LIBRARIES}
-# )
-
 #############
 ## Install ##
 #############
 
-## Mark executable scripts (Python etc.) for installation
-## not required for python when using catkin_python_setup()
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
 ## Mark executables and/or libraries for installation
-# install(TARGETS urg_library_wrapper urg_library_wrapper_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(TARGETS urg_c_wrapper urg_node
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+install(DIRECTORY include/${PROJECT_NAME}/
+   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+   FILES_MATCHING PATTERN "*.h"
+   PATTERN ".svn" EXCLUDE
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
