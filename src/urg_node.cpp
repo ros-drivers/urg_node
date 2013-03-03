@@ -122,10 +122,10 @@ int main(int argc, char **argv)
   try{
     if(ip_address != ""){
       urg_.reset(new urg_library_wrapper::URGLibraryWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
-      ROS_INFO("Connected to network device with ID: ");
+      ROS_INFO("Connected to network device with ID: %s", urg_->getDeviceID().c_str());
     } else {
       urg_.reset(new urg_library_wrapper::URGLibraryWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
-      ROS_INFO("Connected to serial device with ID: ");
+      ROS_INFO("Connected to serial device with ID: %s", urg_->getDeviceID().c_str());
     }
   } catch(std::runtime_error& e){
       ROS_FATAL("%s", e.what());

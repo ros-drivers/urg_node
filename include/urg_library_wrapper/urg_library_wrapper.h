@@ -77,6 +77,34 @@ namespace urg_library_wrapper
 
     double getTimeIncrement();
 
+    std::string getIPAddress();
+
+    int getIPPort();
+
+    std::string getSerialPort();
+
+    int getSerialBaud();
+
+    std::string getVendorName();
+
+    std::string getProductName();
+
+    std::string getFirmwareVersion();
+
+    std::string getFirmwareDate();
+
+    std::string getProtocolVersion();
+
+    std::string getDeviceID();
+
+    ros::Duration getComputedLatency();
+
+    ros::Duration getUserTimeOffset();
+
+    std::string getSensorStatus();
+
+    std::string getSensorState();
+
     void setFrameId(const std::string& frame_id);
 
     void setUserLatency(const double latency);
@@ -104,7 +132,7 @@ namespace urg_library_wrapper
 
     ros::Duration getTimeStampOffset(size_t num_measurements);
 
-    std::string frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
+    std::string frame_id_; ///< Output frame_id for each laserscan.
 
     urg_t urg_;
     bool started_;
@@ -122,6 +150,11 @@ namespace urg_library_wrapper
 
     ros::Duration system_latency_;
     ros::Duration user_latency_;
+
+    std::string ip_address_;
+    int ip_port_;
+    std::string serial_port_;
+    int serial_baud_;
   };
   
   

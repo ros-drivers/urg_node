@@ -36,35 +36,48 @@
 using namespace urg_library_wrapper;
 
 URGLibraryWrapper::URGLibraryWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho){
-	long baudrate_or_port = (long)ip_port;
-    const char *device = ip_address.c_str();
+  // Store for comprehensive diagnostics
+  ip_address_ = ip_address;
+  ip_port_ = ip_port;
+  serial_port_ = "";
+  serial_baud_ = 0;
 
-    int result = urg_open(&urg_, URG_ETHERNET, device, baudrate_or_port);
-    if (result < 0) {
-      std::stringstream ss;
-      ss << "Could not open network Hokuyo:\n";
-      ss << ip_address << ":" << ip_port << "\n";
-      ss << urg_error(&urg_);
-      throw std::runtime_error(ss.str());
-    }
 
-    initialize(using_intensity, using_multiecho);
+  long baudrate_or_port = (long)ip_port;
+  const char *device = ip_address.c_str();
+
+  int result = urg_open(&urg_, URG_ETHERNET, device, baudrate_or_port);
+  if (result < 0) {
+    std::stringstream ss;
+    ss << "Could not open network Hokuyo:\n";
+    ss << ip_address << ":" << ip_port << "\n";
+    ss << urg_error(&urg_);
+    throw std::runtime_error(ss.str());
+  }
+
+  initialize(using_intensity, using_multiecho);
 }
 
 URGLibraryWrapper::URGLibraryWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho){
-	long baudrate_or_port = (long)serial_baud;
-    const char *device = serial_port.c_str();
+  // Store for comprehensive diagnostics
+  serial_baud_ = serial_baud;
+  serial_port_ = serial_port;
+  ip_address_ = "";
+  ip_port_ = 0;
 
-    int result = urg_open(&urg_, URG_SERIAL, device, baudrate_or_port);
-    if (result < 0) {
-      std::stringstream ss;
-      ss << "Could not open serial Hokuyo:\n";
-      ss << serial_port << " @ " << serial_baud << "\n";
-      ss << urg_error(&urg_);
-      throw std::runtime_error(ss.str());
-    }
+  long baudrate_or_port = (long)serial_baud;
+  const char *device = serial_port.c_str();
 
-    initialize(using_intensity, using_multiecho);
+  int result = urg_open(&urg_, URG_SERIAL, device, baudrate_or_port);
+  if (result < 0) {
+    std::stringstream ss;
+    ss << "Could not open serial Hokuyo:\n";
+    ss << serial_port << " @ " << serial_baud << "\n";
+    ss << urg_error(&urg_);
+    throw std::runtime_error(ss.str());
+  }
+
+  initialize(using_intensity, using_multiecho);
 }
 
 void URGLibraryWrapper::initialize(bool& using_intensity, bool& using_multiecho){
@@ -91,7 +104,12 @@ void URGLibraryWrapper::initialize(bool& using_intensity, bool& using_multiecho)
 		measurement_type_ = URG_MULTIECHO;
 	}
 
-	started_ = false;
+  started_ = false;
+  frame_id_ = "";
+  first_step_ = 0;
+  last_step_ = 0;
+  cluster_ = 1;
+  skip_ = 0;
 }
 
 void URGLibraryWrapper::start(){
@@ -285,6 +303,66 @@ double URGLibraryWrapper::getTimeIncrement(){
   double scan_period = getScanPeriod();
   double circle_fraction = (getAngleMaxLimit()-getAngleMinLimit())/(2.0*3.141592);
   return cluster_*circle_fraction*scan_period/(double)(max_step-min_step);
+}
+
+
+std::string URGLibraryWrapper::getIPAddress(){
+  return ip_address_;
+}
+
+int URGLibraryWrapper::getIPPort(){
+  return ip_port_;
+}
+
+std::string URGLibraryWrapper::getSerialPort(){
+  return serial_port_;
+}
+
+int URGLibraryWrapper::getSerialBaud(){
+  return serial_baud_;
+}
+
+std::string URGLibraryWrapper::getVendorName(){
+  // Not broken out in urg_library, but this is a pretty good guess.
+  return "Hokuyo Automatic Co, Ltd";
+}
+
+std::string URGLibraryWrapper::getProductName(){
+  return std::string(urg_sensor_product_type(&urg_));
+}
+
+std::string URGLibraryWrapper::getFirmwareVersion(){
+  return std::string(urg_sensor_firmware_version(&urg_));
+}
+
+std::string URGLibraryWrapper::getFirmwareDate(){
+  // Not broken out.
+  return "Not reported.";
+}
+
+std::string URGLibraryWrapper::getProtocolVersion(){
+  // Not broken out.
+  return "Not reported.";
+}
+
+std::string URGLibraryWrapper::getDeviceID(){
+  return std::string(urg_sensor_serial_id(&urg_));
+}
+
+ros::Duration URGLibraryWrapper::getComputedLatency(){
+  return system_latency_;
+}
+
+ros::Duration URGLibraryWrapper::getUserTimeOffset(){
+  return user_latency_;
+}
+
+std::string URGLibraryWrapper::getSensorStatus(){
+  return std::string(urg_sensor_status(&urg_));
+}
+
+std::string URGLibraryWrapper::getSensorState(){
+  return std::string(urg_sensor_state(&urg_));
 }
 
 void URGLibraryWrapper::setFrameId(const std::string& frame_id){
