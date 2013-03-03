@@ -32,6 +32,7 @@
  */
 
 #include <urg_c_wrapper/urg_c_wrapper.h>
+#include <ros/console.h>
 
 using namespace urg_c_wrapper;
 
@@ -142,9 +143,7 @@ URGCWrapper::~URGCWrapper(){
 }
 
 bool URGCWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
-  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->header.frame_id = frame_id_;
-
   msg->angle_min = getAngleMin();
   msg->angle_max = getAngleMax();
   msg->angle_increment = getAngleIncrement();
@@ -156,17 +155,20 @@ bool URGCWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
   // Grab scan
   int num_beams = 0;
   long time_stamp = 0;
+  unsigned long long system_time_stamp = 0;
 
   if(use_intensity_){
-  	num_beams = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
+  	num_beams = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
   } else {
-  	num_beams = urg_get_distance(&urg_, &data_[0], &time_stamp);
+  	num_beams = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   } 
   if (num_beams <= 0) {
     return false;
   }
 
   // Fill scan
+  msg->header.stamp.fromNSec((uint64_t)system_time_stamp);
+  msg->header.stamp = msg->header.stamp + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->ranges.resize(num_beams);
   if(use_intensity_){
   	msg->intensities.resize(num_beams);
@@ -187,9 +189,7 @@ bool URGCWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
 }
 
 bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
-  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->header.frame_id = frame_id_;
-
   msg->angle_min = getAngleMin();
   msg->angle_max = getAngleMax();
   msg->angle_increment = getAngleIncrement();
@@ -201,17 +201,20 @@ bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
   // Grab scan
   int num_beams = 0;
   long time_stamp = 0;
+  unsigned long long system_time_stamp;
 
   if(use_intensity_){
-  	num_beams = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
+  	num_beams = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
   } else {
-  	num_beams = urg_get_multiecho(&urg_, &data_[0], &time_stamp);
+  	num_beams = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   } 
   if (num_beams <= 0) {
     return false;
   }
 
   // Fill scan
+  msg->header.stamp.fromNSec((uint64_t)system_time_stamp);
+  msg->header.stamp = msg->header.stamp + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->ranges.resize(num_beams);
   if(use_intensity_){
   	msg->intensities.resize(num_beams);
@@ -323,8 +326,7 @@ int URGCWrapper::getSerialBaud(){
 }
 
 std::string URGCWrapper::getVendorName(){
-  // Not broken out in urg_library, but this is a pretty good guess.
-  return "Hokuyo Automatic Co, Ltd";
+  return std::string(urg_sensor_vendor(&urg_));
 }
 
 std::string URGCWrapper::getProductName(){
@@ -336,13 +338,11 @@ std::string URGCWrapper::getFirmwareVersion(){
 }
 
 std::string URGCWrapper::getFirmwareDate(){
-  // Not broken out.
-  return "Not reported.";
+  return std::string(urg_sensor_firmware_date(&urg_));
 }
 
 std::string URGCWrapper::getProtocolVersion(){
-  // Not broken out.
-  return "Not reported.";
+  return std::string(urg_sensor_protocol_version(&urg_));
 }
 
 std::string URGCWrapper::getDeviceID(){
@@ -423,10 +423,9 @@ bool URGCWrapper::isIntensitySupported(){
   }
 
   std::vector<long> data;
-  long time_stamp;
 
   urg_start_measurement(&urg_, URG_DISTANCE_INTENSITY, 0, 0);
-  int ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
+  int ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], NULL, NULL);
   if(ret <= 0){
   	return false; // Failed to start measurement with intensity: must not support it
   }
@@ -439,10 +438,8 @@ bool URGCWrapper::isMultiEchoSupported(){
   	return false; // Must not be streaming
   }
 
-  long time_stamp;
-
   urg_start_measurement(&urg_, URG_MULTIECHO, 0, 0);
-  int ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp);
+  int ret = urg_get_multiecho(&urg_, &data_[0], NULL, NULL);
   if(ret <= 0){
   	return false; // Failed to start measurement with multiecho: must not support it
   }
@@ -465,13 +462,13 @@ ros::Duration URGCWrapper::getAngularTimeOffset(){
 ros::Duration URGCWrapper::computeLatency(size_t num_measurements){
   system_latency_.fromNSec(0);
 
-	ros::Duration start_offset = getNativeClockOffset(num_measurements);
+	ros::Duration start_offset = getNativeClockOffset(1);
 	ros::Duration previous_offset;
 
 	std::vector<ros::Duration> time_offsets(num_measurements);
 	for (size_t i = 0; i < num_measurements; i++){
-		ros::Duration scan_offset = getTimeStampOffset(2*num_measurements); // Seems to need more measurements
-		ros::Duration post_offset = getNativeClockOffset(num_measurements);
+		ros::Duration scan_offset = getTimeStampOffset(1);
+		ros::Duration post_offset = getNativeClockOffset(1);
 		ros::Duration adjusted_scan_offset = scan_offset - start_offset;
 		ros::Duration adjusted_post_offset = post_offset - start_offset;
 		ros::Duration average_offset;
@@ -486,7 +483,7 @@ ros::Duration URGCWrapper::computeLatency(size_t num_measurements){
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size()/2, time_offsets.end());
   system_latency_ = time_offsets[time_offsets.size()/2];
-  return system_latency_;
+  return system_latency_ + getAngularTimeOffset(); // Angular time offset makes the output comparable to that of hokuyo_node
 }
 
 ros::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements){
@@ -538,17 +535,17 @@ ros::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements){
   std::vector<ros::Duration> time_offsets(num_measurements);
   for(size_t i = 0; i < num_measurements; i++){
   	long time_stamp;
+    unsigned long long system_time_stamp;
   	int ret = 0;
 
-  	ros::Time request_time = ros::Time::now();
    	if(measurement_type_ == URG_DISTANCE){
-   		ret = urg_get_distance(&urg_, &data_[0], &time_stamp);
+   		ret = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
    	} else if(measurement_type_ == URG_DISTANCE_INTENSITY){
-  		ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
+  		ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
    	} else if(measurement_type_ == URG_MULTIECHO){
-   		ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp);
+   		ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
    	} else if(measurement_type_ == URG_MULTIECHO_INTENSITY){
-   		ret = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
+   		ret = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
    	}
 
    	if(ret <= 0){
@@ -559,8 +556,10 @@ ros::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements){
 
    	ros::Time laser_timestamp;
    	laser_timestamp.fromNSec(1e6*(uint64_t)time_stamp);
+    ros::Time system_time;
+    system_time.fromNSec((uint64_t)system_time_stamp);
 
-   	time_offsets[i] = laser_timestamp - request_time;
+   	time_offsets[i] = laser_timestamp - system_time;
   }
 
   stop();
