@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 <package>
-  <name>urg_c_wrapper</name>
+  <name>urg_node</name>
   <version>0.1.0</version>
-  <description>urg_c_wrapper</description>
+  <description>urg_node</description>
 
   <maintainer email="chadrockey@willowgarage.com">Chad Rockey</maintainer>
 
   <license>BSD</license>
 
-  <url type="website">http://ros.org/wiki/urg_c_wrapper</url>
-  <url type="bugtracker">https://github.com/ros-drivers/urg_c_wrapper/issues</url>
-  <url type="repository">https://github.com/ros-drivers/urg_c_wrapper</url>
+  <url type="website">http://ros.org/wiki/urg_node</url>
+  <url type="bugtracker">https://github.com/ros-drivers/urg_node/issues</url>
+  <url type="repository">https://github.com/ros-drivers/urg_node</url>
 
   <author email="chadrockey@willowgarage.com">Chad Rockey</author>
 

@@ -31,10 +31,10 @@
  * Author: Chad Rockey
  */
 
-#include <urg_c_wrapper/urg_c_wrapper.h>
+#include <urg_node/urg_c_wrapper.h>
 #include <ros/console.h>
 
-using namespace urg_c_wrapper;
+using namespace urg_node;
 
 URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho){
   // Store for comprehensive diagnostics

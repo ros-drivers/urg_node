@@ -44,7 +44,7 @@
 #include <urg_c/urg_sensor.h>
 #include <urg_c/urg_utils.h>
 
-namespace urg_c_wrapper
+namespace urg_node
 { 
   class URGCWrapper
   {
@@ -158,6 +158,6 @@ namespace urg_c_wrapper
   };
   
   
-}; // urg_c_wrapper
+}; // urg_node
 
 #endif
