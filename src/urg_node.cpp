@@ -39,12 +39,15 @@
 
 #include <urg_library_wrapper/urg_library_wrapper.h>
 
+///< @TODO Remove this and pass to the functions instead
 boost::shared_ptr<urg_library_wrapper::URGLibraryWrapper> urg_;
-
 boost::shared_ptr<dynamic_reconfigure::Server<urg_library_wrapper::URGConfig> > srv_; ///< Dynamic reconfigure server
 
-bool reconfigure_callback(urg_library_wrapper::URGConfig& config, uint32_t level){
-  if(level > 0){ // Must stop
+bool reconfigure_callback(urg_library_wrapper::URGConfig& config, int level){
+  if(level < 0){ // First call, initialize, laser not yet started
+    urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
+    urg_->setSkip(config.skip);
+  } else if(level > 0){ // Must stop
     urg_->stop();
     ROS_INFO("Stopped data due to reconfigure.");
     
@@ -76,7 +79,6 @@ void update_reconfigure_limits(){
   srv_->getConfigMin(min);
   srv_->getConfigMax(max);
 
-  /// @TODO Figure out the minimum range between min and max
   min.angle_min = urg_->getAngleMinLimit();
   min.angle_max = min.angle_min;
   max.angle_max = urg_->getAngleMaxLimit();
@@ -106,19 +108,14 @@ int main(int argc, char **argv)
   pnh.param<std::string>("serial_port", serial_port, "/dev/ttyACM0");
   int serial_baud;
   pnh.param<int>("serial_baud", serial_baud, 115200);
-
-  std::string tf_prefix;
-  pnh.param<std::string>("tf_prefix", tf_prefix, "");
   
-
-
   bool calibrate_time;
-  pnh.param<bool>("calibrate_time", calibrate_time, true);
+  pnh.param<bool>("calibrate_time", calibrate_time, false);
 
   bool publish_intensity;
   pnh.param<bool>("publish_intensity", publish_intensity, true);
 
-  bool publish_multiecho; /// @TODO Should we always get multiecho and publish through support library?
+  bool publish_multiecho; ///< @TODO Should we always get multiecho and publish through support library?
   pnh.param<bool>("publish_multiecho", publish_multiecho, true);
   
   // Set up the urgwidget
@@ -138,8 +135,17 @@ int main(int argc, char **argv)
   }
 
   if(calibrate_time){
-    ROS_INFO("Starting calibration. This will take a few seconds.");
-    ROS_INFO("Calibration finished. Latency is: not calculated.");
+    try{
+      ROS_INFO("Starting calibration. This will take a few seconds.");
+      ROS_WARN("Time calibration is still experimental.");
+      ros::Duration latency = urg_->computeLatency(10);
+      ROS_INFO("Calibration finished. Latency is: %.4f.", latency.toSec());
+    } catch(std::runtime_error& e){
+      ROS_FATAL("Could not calibrate time offset:%s", e.what());
+      ros::spinOnce();
+      ros::Duration(1.0).sleep();
+      ros::shutdown();
+    }
   }
 
   // Set up dynamic reconfigure

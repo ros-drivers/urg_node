@@ -68,18 +68,18 @@ URGLibraryWrapper::URGLibraryWrapper(const int serial_baud, const std::string& s
 }
 
 void URGLibraryWrapper::initialize(bool& using_intensity, bool& using_multiecho){
-    data_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
-    intensity_.resize(urg_max_data_size(&urg_));
+  data_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
+  intensity_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
 
-    if(using_intensity){
-    	using_intensity = isIntensitySupported();
-    }
+  if(using_intensity){
+  	using_intensity = isIntensitySupported();
+  }
 
-    if(using_multiecho){
-    	using_multiecho = isMultiEchoSupported();
-    }
+  if(using_multiecho){
+  	using_multiecho = isMultiEchoSupported();
+  }
 
-    use_intensity_ = using_intensity;
+  use_intensity_ = using_intensity;
 	use_multiecho_ = using_multiecho;
 
 	measurement_type_ = URG_DISTANCE;
@@ -124,7 +124,7 @@ URGLibraryWrapper::~URGLibraryWrapper(){
 }
 
 bool URGLibraryWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
-  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_;
+  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->header.frame_id = frame_id_;
 
   msg->angle_min = getAngleMin();
@@ -169,7 +169,7 @@ bool URGLibraryWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
 }
 
 bool URGLibraryWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
-  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_;
+  msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->header.frame_id = frame_id_;
 
   msg->angle_min = getAngleMin();
@@ -231,8 +231,6 @@ bool URGLibraryWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
   return true;
 }
 
-
-
 double URGLibraryWrapper::getRangeMin(){
   long minr;
   long maxr;
@@ -285,8 +283,8 @@ double URGLibraryWrapper::getTimeIncrement(){
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
   double scan_period = getScanPeriod();
-  double circle_fraction = (getAngleMax()-getAngleMin())/(2.0*3.141592);
-  return circle_fraction*scan_period/(double)(max_step-min_step);
+  double circle_fraction = (getAngleMaxLimit()-getAngleMinLimit())/(2.0*3.141592);
+  return cluster_*circle_fraction*scan_period/(double)(max_step-min_step);
 }
 
 void URGLibraryWrapper::setFrameId(const std::string& frame_id){
@@ -351,7 +349,6 @@ bool URGLibraryWrapper::isIntensitySupported(){
 
   urg_start_measurement(&urg_, URG_DISTANCE_INTENSITY, 0, 0);
   int ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
-  std::cout << "Ret: " << ret << std::endl;
   if(ret <= 0){
   	return false; // Failed to start measurement with intensity: must not support it
   }
@@ -368,10 +365,130 @@ bool URGLibraryWrapper::isMultiEchoSupported(){
 
   urg_start_measurement(&urg_, URG_MULTIECHO, 0, 0);
   int ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp);
-  std::cout << "Ret: " << ret << std::endl;
   if(ret <= 0){
   	return false; // Failed to start measurement with multiecho: must not support it
   }
   urg_stop_measurement(&urg_);
   return true;
+}
+
+ros::Duration URGLibraryWrapper::getAngularTimeOffset(){
+  // Adjust value for Hokuyo's timestamps
+  // Hokuyo's timestamps start from the rear center of the device (at Pi according to ROS standards)
+  double circle_fraction = 0.0;
+  if(first_step_ == 0 && last_step_ == 0){
+    circle_fraction = (getAngleMinLimit()+3.141592)/(2.0*3.141592);
+  } else {
+    circle_fraction = (getAngleMin()+3.141592)/(2.0*3.141592);
+  }
+  return ros::Duration(circle_fraction * getScanPeriod());
+}
+
+ros::Duration URGLibraryWrapper::computeLatency(size_t num_measurements){
+  system_latency_.fromNSec(0);
+
+	ros::Duration start_offset = getNativeClockOffset(num_measurements);
+	ros::Duration previous_offset;
+
+	std::vector<ros::Duration> time_offsets(num_measurements);
+	for (size_t i = 0; i < num_measurements; i++){
+		ros::Duration scan_offset = getTimeStampOffset(2*num_measurements); // Seems to need more measurements
+		ros::Duration post_offset = getNativeClockOffset(num_measurements);
+		ros::Duration adjusted_scan_offset = scan_offset - start_offset;
+		ros::Duration adjusted_post_offset = post_offset - start_offset;
+		ros::Duration average_offset;
+		average_offset.fromSec((adjusted_post_offset.toSec() + previous_offset.toSec())/2.0);
+
+		time_offsets[i] = adjusted_scan_offset - average_offset;
+
+		previous_offset = adjusted_post_offset;
+	}
+
+  // Get median value
+  // Sort vector using nth_element (partially sorts up to the median index)
+  std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size()/2, time_offsets.end());
+  system_latency_ = time_offsets[time_offsets.size()/2];
+  return system_latency_;
+}
+
+ros::Duration URGLibraryWrapper::getNativeClockOffset(size_t num_measurements){
+  if(started_){
+    std::stringstream ss;
+    ss << "Cannot get native clock offset while started.";
+    throw std::runtime_error(ss.str());
+  }
+
+  if(urg_start_time_stamp_mode(&urg_) < 0){
+    std::stringstream ss;
+    ss << "Cannot start time stamp mode.";
+    throw std::runtime_error(ss.str());
+  }
+
+  std::vector<ros::Duration> time_offsets(num_measurements);
+  for (size_t i = 0; i < num_measurements; i++)
+  {
+  	ros::Time request_time = ros::Time::now();
+  	ros::Time laser_time;
+  	laser_time.fromNSec(1e6*(uint64_t)urg_time_stamp(&urg_)); // 1e6 * milliseconds = nanoseconds
+  	ros::Time response_time = ros::Time::now();
+  	ros::Time average_time;
+  	average_time.fromSec((response_time.toSec()+request_time.toSec())/2.0);
+  	time_offsets[i] = laser_time - average_time;
+  }
+
+  if(urg_stop_time_stamp_mode(&urg_) < 0){
+    std::stringstream ss;
+    ss << "Cannot stop time stamp mode.";
+    throw std::runtime_error(ss.str());
+  };
+
+  // Return median value
+  // Sort vector using nth_element (partially sorts up to the median index)
+  std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size()/2, time_offsets.end());
+  return time_offsets[time_offsets.size()/2];
+}
+
+ros::Duration URGLibraryWrapper::getTimeStampOffset(size_t num_measurements){
+  if(started_){
+    std::stringstream ss;
+    ss << "Cannot get time stamp offset while started.";
+    throw std::runtime_error(ss.str());
+  }
+
+  start();
+
+  std::vector<ros::Duration> time_offsets(num_measurements);
+  for(size_t i = 0; i < num_measurements; i++){
+  	long time_stamp;
+  	int ret = 0;
+
+  	ros::Time request_time = ros::Time::now();
+   	if(measurement_type_ == URG_DISTANCE){
+   		ret = urg_get_distance(&urg_, &data_[0], &time_stamp);
+   	} else if(measurement_type_ == URG_DISTANCE_INTENSITY){
+  		ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
+   	} else if(measurement_type_ == URG_MULTIECHO){
+   		ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp);
+   	} else if(measurement_type_ == URG_MULTIECHO_INTENSITY){
+   		ret = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp);
+   	}
+
+   	if(ret <= 0){
+   		std::stringstream ss;
+  	  ss << "Cannot get scan to measure time stamp offset.";
+  	  throw std::runtime_error(ss.str());
+   	}
+
+   	ros::Time laser_timestamp;
+   	laser_timestamp.fromNSec(1e6*(uint64_t)time_stamp);
+
+   	time_offsets[i] = laser_timestamp - request_time;
+  }
+
+  stop();
+
+  // Return median value
+  // Sort vector using nth_element (partially sorts up to the median index)
+  std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size()/2, time_offsets.end());
+  return time_offsets[time_offsets.size()/2];
 }

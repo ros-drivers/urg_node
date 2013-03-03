@@ -85,6 +85,8 @@ namespace urg_library_wrapper
 
     bool setSkip(int skip);
 
+    ros::Duration computeLatency(size_t num_measurements);
+
     bool grabScan(const sensor_msgs::LaserScanPtr& msg);
 
     bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
@@ -95,6 +97,12 @@ namespace urg_library_wrapper
     bool isIntensitySupported();
 
     bool isMultiEchoSupported();
+
+    ros::Duration getAngularTimeOffset();
+
+    ros::Duration getNativeClockOffset(size_t num_measurements);
+
+    ros::Duration getTimeStampOffset(size_t num_measurements);
 
     std::string frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
 
