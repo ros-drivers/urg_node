@@ -35,15 +35,15 @@
 
 #include <tf/tf.h> // tf header for resolving tf prefix
 #include <dynamic_reconfigure/server.h>
-#include <urg_library_wrapper/URGConfig.h>
+#include <urg_c_wrapper/URGConfig.h>
 
-#include <urg_library_wrapper/urg_library_wrapper.h>
+#include <urg_c_wrapper/urg_c_wrapper.h>
 
 ///< @TODO Remove this and pass to the functions instead
-boost::shared_ptr<urg_library_wrapper::URGLibraryWrapper> urg_;
-boost::shared_ptr<dynamic_reconfigure::Server<urg_library_wrapper::URGConfig> > srv_; ///< Dynamic reconfigure server
+boost::shared_ptr<urg_c_wrapper::URGCWrapper> urg_;
+boost::shared_ptr<dynamic_reconfigure::Server<urg_c_wrapper::URGConfig> > srv_; ///< Dynamic reconfigure server
 
-bool reconfigure_callback(urg_library_wrapper::URGConfig& config, int level){
+bool reconfigure_callback(urg_c_wrapper::URGConfig& config, int level){
   if(level < 0){ // First call, initialize, laser not yet started
     urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
     urg_->setSkip(config.skip);
@@ -75,7 +75,7 @@ bool reconfigure_callback(urg_library_wrapper::URGConfig& config, int level){
 }
 
 void update_reconfigure_limits(){
-  urg_library_wrapper::URGConfig min, max;
+  urg_c_wrapper::URGConfig min, max;
   srv_->getConfigMin(min);
   srv_->getConfigMax(max);
 
@@ -121,10 +121,10 @@ int main(int argc, char **argv)
   // Set up the urgwidget
   try{
     if(ip_address != ""){
-      urg_.reset(new urg_library_wrapper::URGLibraryWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
+      urg_.reset(new urg_c_wrapper::URGCWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
       ROS_INFO("Connected to network device with ID: %s", urg_->getDeviceID().c_str());
     } else {
-      urg_.reset(new urg_library_wrapper::URGLibraryWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
+      urg_.reset(new urg_c_wrapper::URGCWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
       ROS_INFO("Connected to serial device with ID: %s", urg_->getDeviceID().c_str());
     }
   } catch(std::runtime_error& e){
@@ -132,6 +132,7 @@ int main(int argc, char **argv)
       ros::spinOnce();
       ros::Duration(1.0).sleep();
       ros::shutdown();
+      return EXIT_FAILURE;
   }
 
   if(calibrate_time){
@@ -145,16 +146,17 @@ int main(int argc, char **argv)
       ros::spinOnce();
       ros::Duration(1.0).sleep();
       ros::shutdown();
+      return EXIT_FAILURE;
     }
   }
 
   // Set up dynamic reconfigure
-  srv_.reset(new dynamic_reconfigure::Server<urg_library_wrapper::URGConfig>());
+  srv_.reset(new dynamic_reconfigure::Server<urg_c_wrapper::URGConfig>());
 
   // Configure limits (Must do this after creating the urgwidget)
   update_reconfigure_limits();
 
-  dynamic_reconfigure::Server<urg_library_wrapper::URGConfig>::CallbackType f;
+  dynamic_reconfigure::Server<urg_c_wrapper::URGConfig>::CallbackType f;
   f = boost::bind(reconfigure_callback, _1, _2);
   srv_->setCallback(f);
 
@@ -166,6 +168,7 @@ int main(int argc, char **argv)
     ros::spinOnce();
     ros::Duration(1.0).sleep();
     ros::shutdown();
+    return EXIT_FAILURE;
   }
 
   while(ros::ok()){

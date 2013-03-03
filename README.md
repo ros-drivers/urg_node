@@ -1,4 +1,4 @@
-urg_library_wrapper
+urg_c_wrapper
 ===================
 
-ROS wrapper for the Hokuyo urg_library
+ROS wrapper for the Hokuyo urg_c library.

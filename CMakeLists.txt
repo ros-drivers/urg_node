@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(urg_library_wrapper)
+project(urg_c_wrapper)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs urg_library rosconsole nodelet dynamic_reconfigure tf)
+find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs urg_c rosconsole nodelet dynamic_reconfigure tf)
 
 # Dynamic reconfigure support
 generate_dynamic_reconfigure_options(cfg/URG.cfg)
@@ -18,8 +18,8 @@ generate_dynamic_reconfigure_options(cfg/URG.cfg)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES urg_library_wrapper
-  CATKIN_DEPENDS roscpp sensor_msgs urg_library rosconsole nodelet dynamic_reconfigure
+  LIBRARIES urg_c_wrapper
+  CATKIN_DEPENDS roscpp sensor_msgs urg_c rosconsole nodelet dynamic_reconfigure
   DEPENDS
 )
 
@@ -31,13 +31,13 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
-add_library(urg_library_wrapper src/urg_library_wrapper.cpp)
-target_link_libraries(urg_library_wrapper ${catkin_LIBRARIES})
+add_library(urg_c_wrapper src/urg_c_wrapper.cpp)
+target_link_libraries(urg_c_wrapper ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(urg_node src/urg_node.cpp)
 add_dependencies(urg_node ${PROJECT_NAME}_gencfg)
-target_link_libraries(urg_node urg_library_wrapper ${catkin_LIBRARIES})
+target_link_libraries(urg_node urg_c_wrapper ${catkin_LIBRARIES})
 
 ## Add dependencies to the executable
 # add_dependencies(urg_library_wrapper_node ${PROJECT_NAME})

@@ -31,8 +31,8 @@
  * Author: Chad Rockey
  */
 
-#ifndef URG_LIBRARY_WRAPPER_H
-#define URG_LIBRARY_WRAPPER_H
+#ifndef URG_C_WRAPPER_H
+#define URG_C_WRAPPER_H
 
 #include <stdexcept>
 #include <sstream>
@@ -41,19 +41,19 @@
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/MultiEchoLaserScan.h>
 
-#include <urg_sensor.h>
-#include <urg_utils.h>
+#include <urg_c/urg_sensor.h>
+#include <urg_c/urg_utils.h>
 
-namespace urg_library_wrapper
+namespace urg_c_wrapper
 { 
-  class URGLibraryWrapper
+  class URGCWrapper
   {
   public:
-    URGLibraryWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
+    URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
 
-    URGLibraryWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
+    URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
 
-    ~URGLibraryWrapper();
+    ~URGCWrapper();
 
     void start();
 
@@ -158,6 +158,6 @@ namespace urg_library_wrapper
   };
   
   
-}; // urg_library_wrapper
+}; // urg_c_wrapper
 
 #endif

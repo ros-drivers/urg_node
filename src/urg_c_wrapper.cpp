@@ -31,11 +31,11 @@
  * Author: Chad Rockey
  */
 
-#include <urg_library_wrapper/urg_library_wrapper.h>
+#include <urg_c_wrapper/urg_c_wrapper.h>
 
-using namespace urg_library_wrapper;
+using namespace urg_c_wrapper;
 
-URGLibraryWrapper::URGLibraryWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho){
+URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho){
   // Store for comprehensive diagnostics
   ip_address_ = ip_address;
   ip_port_ = ip_port;
@@ -58,7 +58,7 @@ URGLibraryWrapper::URGLibraryWrapper(const std::string& ip_address, const int ip
   initialize(using_intensity, using_multiecho);
 }
 
-URGLibraryWrapper::URGLibraryWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho){
+URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho){
   // Store for comprehensive diagnostics
   serial_baud_ = serial_baud;
   serial_port_ = serial_port;
@@ -80,7 +80,7 @@ URGLibraryWrapper::URGLibraryWrapper(const int serial_baud, const std::string& s
   initialize(using_intensity, using_multiecho);
 }
 
-void URGLibraryWrapper::initialize(bool& using_intensity, bool& using_multiecho){
+void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
   data_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
   intensity_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
 
@@ -112,7 +112,7 @@ void URGLibraryWrapper::initialize(bool& using_intensity, bool& using_multiecho)
   skip_ = 0;
 }
 
-void URGLibraryWrapper::start(){
+void URGCWrapper::start(){
 	if(!started_){
 		int result = urg_start_measurement(&urg_, measurement_type_, 0, skip_);
 		if (result < 0) {
@@ -131,17 +131,17 @@ void URGLibraryWrapper::start(){
     started_ = true;
 }
 
-void URGLibraryWrapper::stop(){
+void URGCWrapper::stop(){
 	urg_stop_measurement(&urg_);
 	started_ = false;
 }
 
-URGLibraryWrapper::~URGLibraryWrapper(){
+URGCWrapper::~URGCWrapper(){
 	stop();
 	urg_close(&urg_);
 }
 
-bool URGLibraryWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
+bool URGCWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
   msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->header.frame_id = frame_id_;
 
@@ -186,7 +186,7 @@ bool URGLibraryWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
   return true;
 }
 
-bool URGLibraryWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
+bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
   msg->header.stamp = ros::Time::now() + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->header.frame_id = frame_id_;
 
@@ -249,54 +249,54 @@ bool URGLibraryWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
   return true;
 }
 
-double URGLibraryWrapper::getRangeMin(){
+double URGCWrapper::getRangeMin(){
   long minr;
   long maxr;
   urg_distance_min_max(&urg_, &minr, &maxr);
   return (double)minr/1000.0;
 }
 
-double URGLibraryWrapper::getRangeMax(){
+double URGCWrapper::getRangeMax(){
   long minr;
   long maxr;
   urg_distance_min_max(&urg_, &minr, &maxr);
   return (double)maxr/1000.0;
 }
 
-double URGLibraryWrapper::getAngleMin(){
+double URGCWrapper::getAngleMin(){
   return urg_step2rad(&urg_, first_step_);
 }
 
-double URGLibraryWrapper::getAngleMax(){
+double URGCWrapper::getAngleMax(){
   return urg_step2rad(&urg_, last_step_);
 }
 
-double URGLibraryWrapper::getAngleMinLimit(){
+double URGCWrapper::getAngleMinLimit(){
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
   return urg_step2rad(&urg_, min_step);
 }
 
-double URGLibraryWrapper::getAngleMaxLimit(){
+double URGCWrapper::getAngleMaxLimit(){
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
   return urg_step2rad(&urg_, max_step);
 }
 
-double URGLibraryWrapper::getAngleIncrement(){
+double URGCWrapper::getAngleIncrement(){
   double angle_min = getAngleMin();
   double angle_max = getAngleMax();
   return cluster_*(angle_max-angle_min)/(double)(last_step_-first_step_);
 }
 
-double URGLibraryWrapper::getScanPeriod(){
+double URGCWrapper::getScanPeriod(){
   long scan_usec = urg_scan_usec(&urg_);
   return 1.e-6*(double)(scan_usec);
 }
 
-double URGLibraryWrapper::getTimeIncrement(){
+double URGCWrapper::getTimeIncrement(){
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
@@ -306,75 +306,75 @@ double URGLibraryWrapper::getTimeIncrement(){
 }
 
 
-std::string URGLibraryWrapper::getIPAddress(){
+std::string URGCWrapper::getIPAddress(){
   return ip_address_;
 }
 
-int URGLibraryWrapper::getIPPort(){
+int URGCWrapper::getIPPort(){
   return ip_port_;
 }
 
-std::string URGLibraryWrapper::getSerialPort(){
+std::string URGCWrapper::getSerialPort(){
   return serial_port_;
 }
 
-int URGLibraryWrapper::getSerialBaud(){
+int URGCWrapper::getSerialBaud(){
   return serial_baud_;
 }
 
-std::string URGLibraryWrapper::getVendorName(){
+std::string URGCWrapper::getVendorName(){
   // Not broken out in urg_library, but this is a pretty good guess.
   return "Hokuyo Automatic Co, Ltd";
 }
 
-std::string URGLibraryWrapper::getProductName(){
+std::string URGCWrapper::getProductName(){
   return std::string(urg_sensor_product_type(&urg_));
 }
 
-std::string URGLibraryWrapper::getFirmwareVersion(){
+std::string URGCWrapper::getFirmwareVersion(){
   return std::string(urg_sensor_firmware_version(&urg_));
 }
 
-std::string URGLibraryWrapper::getFirmwareDate(){
+std::string URGCWrapper::getFirmwareDate(){
   // Not broken out.
   return "Not reported.";
 }
 
-std::string URGLibraryWrapper::getProtocolVersion(){
+std::string URGCWrapper::getProtocolVersion(){
   // Not broken out.
   return "Not reported.";
 }
 
-std::string URGLibraryWrapper::getDeviceID(){
+std::string URGCWrapper::getDeviceID(){
   return std::string(urg_sensor_serial_id(&urg_));
 }
 
-ros::Duration URGLibraryWrapper::getComputedLatency(){
+ros::Duration URGCWrapper::getComputedLatency(){
   return system_latency_;
 }
 
-ros::Duration URGLibraryWrapper::getUserTimeOffset(){
+ros::Duration URGCWrapper::getUserTimeOffset(){
   return user_latency_;
 }
 
-std::string URGLibraryWrapper::getSensorStatus(){
+std::string URGCWrapper::getSensorStatus(){
   return std::string(urg_sensor_status(&urg_));
 }
 
-std::string URGLibraryWrapper::getSensorState(){
+std::string URGCWrapper::getSensorState(){
   return std::string(urg_sensor_state(&urg_));
 }
 
-void URGLibraryWrapper::setFrameId(const std::string& frame_id){
+void URGCWrapper::setFrameId(const std::string& frame_id){
   frame_id_ = frame_id;
 }
 
-void URGLibraryWrapper::setUserLatency(const double latency){
+void URGCWrapper::setUserLatency(const double latency){
   user_latency_.fromSec(latency);
 }
 
 // Must be called before urg_start
-bool URGLibraryWrapper::setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster){
+bool URGCWrapper::setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster){
   if(started_){
   	return false; // Must not be streaming
   }
@@ -413,11 +413,11 @@ bool URGLibraryWrapper::setAngleLimitsAndCluster(double& angle_min, double& angl
   return true;
 }
 
-bool URGLibraryWrapper::setSkip(int skip){
+bool URGCWrapper::setSkip(int skip){
 	skip_ = skip;
 }
 
-bool URGLibraryWrapper::isIntensitySupported(){
+bool URGCWrapper::isIntensitySupported(){
   if(started_){
   	return false; // Must not be streaming
   }
@@ -434,7 +434,7 @@ bool URGLibraryWrapper::isIntensitySupported(){
   return true;
 }
 
-bool URGLibraryWrapper::isMultiEchoSupported(){
+bool URGCWrapper::isMultiEchoSupported(){
   if(started_){
   	return false; // Must not be streaming
   }
@@ -450,7 +450,7 @@ bool URGLibraryWrapper::isMultiEchoSupported(){
   return true;
 }
 
-ros::Duration URGLibraryWrapper::getAngularTimeOffset(){
+ros::Duration URGCWrapper::getAngularTimeOffset(){
   // Adjust value for Hokuyo's timestamps
   // Hokuyo's timestamps start from the rear center of the device (at Pi according to ROS standards)
   double circle_fraction = 0.0;
@@ -462,7 +462,7 @@ ros::Duration URGLibraryWrapper::getAngularTimeOffset(){
   return ros::Duration(circle_fraction * getScanPeriod());
 }
 
-ros::Duration URGLibraryWrapper::computeLatency(size_t num_measurements){
+ros::Duration URGCWrapper::computeLatency(size_t num_measurements){
   system_latency_.fromNSec(0);
 
 	ros::Duration start_offset = getNativeClockOffset(num_measurements);
@@ -489,7 +489,7 @@ ros::Duration URGLibraryWrapper::computeLatency(size_t num_measurements){
   return system_latency_;
 }
 
-ros::Duration URGLibraryWrapper::getNativeClockOffset(size_t num_measurements){
+ros::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements){
   if(started_){
     std::stringstream ss;
     ss << "Cannot get native clock offset while started.";
@@ -526,7 +526,7 @@ ros::Duration URGLibraryWrapper::getNativeClockOffset(size_t num_measurements){
   return time_offsets[time_offsets.size()/2];
 }
 
-ros::Duration URGLibraryWrapper::getTimeStampOffset(size_t num_measurements){
+ros::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements){
   if(started_){
     std::stringstream ss;
     ss << "Cannot get time stamp offset while started.";
