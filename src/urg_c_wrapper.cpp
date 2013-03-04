@@ -219,45 +219,27 @@ bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
   	msg->intensities.reserve(num_beams);
   } 
 
-  for (int i = 0; i < num_beams; i++) {
+  for (size_t i = 0; i < num_beams; i++) {
     sensor_msgs::LaserEcho range_echo;
     range_echo.echoes.reserve(URG_MAX_ECHO);
     sensor_msgs::LaserEcho intensity_echo;
     if(use_intensity_){
       intensity_echo.echoes.reserve(URG_MAX_ECHO);
     }
-    if(data_[(URG_MAX_ECHO * i) + 0] != 0){
-      range_echo.echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 0]/1000.0);
-      if(use_intensity_){
-      	intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 0]);
-  	  }
-    } else {
-      continue;
-    }
-
-    if(data_[(URG_MAX_ECHO * i) + 1] != 0){
-      range_echo.echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 1]/1000.0);
-      if(use_intensity_){
-        intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 1]);
+    for(size_t j = 0; j < URG_MAX_ECHO; j++){
+      if(data_[(URG_MAX_ECHO * i) + j] != 0){
+        range_echo.echoes.push_back((float)data_[(URG_MAX_ECHO * i) + j]/1000.0f);
+        if(use_intensity_){
+        	intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + j]);
+    	  }
+      } else {
+        break;
       }
-    } else {
-      continue;
     }
-
-    if(data_[(URG_MAX_ECHO * i) + 2] != 0){
-      range_echo.echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 2]/1000.0);
-      if(use_intensity_){
-        intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 2]);
-      }
-    } else {
-      continue;
-    }
-
     msg->ranges.push_back(range_echo);
     if(use_intensity_){
       msg->intensities.push_back(intensity_echo);
     }
-      
   }
 
   return true;
