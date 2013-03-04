@@ -32,7 +32,6 @@
  */
 
 #include <urg_node/urg_c_wrapper.h>
-#include <ros/console.h>
 
 using namespace urg_node;
 
@@ -212,43 +211,55 @@ bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
     return false;
   }
 
-  // Fill scan
+  // Fill scan (uses vector.reserve wherever possible to avoid initalization and unecessary memory expansion)
   msg->header.stamp.fromNSec((uint64_t)system_time_stamp);
   msg->header.stamp = msg->header.stamp + system_latency_ + user_latency_ + getAngularTimeOffset();
-  msg->ranges.resize(num_beams);
+  msg->ranges.reserve(num_beams);
   if(use_intensity_){
-  	msg->intensities.resize(num_beams);
-  }
-  
+  	msg->intensities.reserve(num_beams);
+  } 
+
   for (int i = 0; i < num_beams; i++) {
+    sensor_msgs::LaserEcho range_echo;
+    range_echo.echoes.reserve(URG_MAX_ECHO);
+    sensor_msgs::LaserEcho intensity_echo;
+    if(use_intensity_){
+      intensity_echo.echoes.reserve(URG_MAX_ECHO);
+    }
     if(data_[(URG_MAX_ECHO * i) + 0] != 0){
-      msg->ranges[i].echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 0]/1000.0);
+      range_echo.echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 0]/1000.0);
       if(use_intensity_){
-      	msg->intensities[i].echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 0]);
+      	intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 0]);
   	  }
     } else {
       continue;
     }
 
     if(data_[(URG_MAX_ECHO * i) + 1] != 0){
-      msg->ranges[i].echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 1]/1000.0);
+      range_echo.echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 1]/1000.0);
       if(use_intensity_){
-        msg->intensities[i].echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 1]);
+        intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 1]);
       }
     } else {
       continue;
     }
 
     if(data_[(URG_MAX_ECHO * i) + 2] != 0){
-      msg->ranges[i].echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 2]/1000.0);
+      range_echo.echoes.push_back((float)data_[(URG_MAX_ECHO * i) + 2]/1000.0);
       if(use_intensity_){
-        msg->intensities[i].echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 2]);
+        intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + 2]);
       }
     } else {
       continue;
     }
+
+    msg->ranges.push_back(range_echo);
+    if(use_intensity_){
+      msg->intensities.push_back(intensity_echo);
+    }
       
   }
+
   return true;
 }
 
