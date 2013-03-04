@@ -38,6 +38,7 @@
 #include <urg_node/URGConfig.h>
 
 #include <urg_node/urg_c_wrapper.h>
+#include <laser_proc/LaserTransport.h>
 
 ///< @TODO Remove this and pass to the functions instead
 boost::shared_ptr<urg_node::URGCWrapper> urg_;
@@ -96,7 +97,7 @@ int main(int argc, char **argv)
   ros::NodeHandle pnh("~");
 
   ros::Publisher laser_pub = n.advertise<sensor_msgs::LaserScan>("scan", 20);
-  ros::Publisher echoes_pub = n.advertise<sensor_msgs::MultiEchoLaserScan>("echoes", 20);
+  laser_proc::LaserPublisher echoes_pub = laser_proc::LaserTransport::advertiseLaser(n, 20);
   
   // Get parameters so we can change these later.
   std::string ip_address;
