@@ -89,6 +89,20 @@ void update_reconfigure_limits(){
   srv_->setConfigMax(max);
 }
 
+void calibrate_time_offset(){
+     try{
+      ROS_INFO("Starting calibration. This will take a few seconds.");
+      ROS_WARN("Time calibration is still experimental.");
+      ros::Duration latency = urg_->computeLatency(10);
+      ROS_INFO("Calibration finished. Latency is: %.4f.", latency.toSec());
+    } catch(std::runtime_error& e){
+      ROS_FATAL("Could not calibrate time offset:%s", e.what());
+      ros::spinOnce();
+      ros::Duration(1.0).sleep();
+      ros::shutdown();
+    }
+}
+
 int main(int argc, char **argv)
 {
   // Initialize node and nodehandles
@@ -113,17 +127,18 @@ int main(int argc, char **argv)
   bool publish_intensity;
   pnh.param<bool>("publish_intensity", publish_intensity, true);
 
-  bool publish_multiecho; ///< @TODO Should we always get multiecho and publish through support library?
+  bool publish_multiecho;
   pnh.param<bool>("publish_multiecho", publish_multiecho, true);
+
+  int error_limit;
+  pnh.param<int>("error_limit", error_limit, 4);
   
   // Set up the urgwidget
   try{
     if(ip_address != ""){
       urg_.reset(new urg_node::URGCWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
-      ROS_INFO("Connected to network device with ID: %s", urg_->getDeviceID().c_str());
     } else {
       urg_.reset(new urg_node::URGCWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
-      ROS_INFO("Connected to serial device with ID: %s", urg_->getDeviceID().c_str());
     }
   } catch(std::runtime_error& e){
       ROS_FATAL("%s", e.what());
@@ -132,6 +147,23 @@ int main(int argc, char **argv)
       ros::shutdown();
       return EXIT_FAILURE;
   }
+
+  std::stringstream ss;
+  ss << "Connected to";
+  if(publish_multiecho){
+    ss << " multiecho";
+  }
+  if(ip_address != ""){
+    ss << " network";
+  } else {
+    ss << " serial";
+  }
+  ss << " device with";
+  if(publish_intensity){
+    ss << " intensity and";
+  }
+  ss << " ID: " << urg_->getDeviceID();
+  ROS_INFO_STREAM(ss.str());
 
   // Set up publishers, we only need one
   ros::Publisher laser_pub;
@@ -143,18 +175,7 @@ int main(int argc, char **argv)
   }
 
   if(calibrate_time){
-    try{
-      ROS_INFO("Starting calibration. This will take a few seconds.");
-      ROS_WARN("Time calibration is still experimental.");
-      ros::Duration latency = urg_->computeLatency(10);
-      ROS_INFO("Calibration finished. Latency is: %.4f.", latency.toSec());
-    } catch(std::runtime_error& e){
-      ROS_FATAL("Could not calibrate time offset:%s", e.what());
-      ros::spinOnce();
-      ros::Duration(1.0).sleep();
-      ros::shutdown();
-      return EXIT_FAILURE;
-    }
+    calibrate_time_offset();
   }
 
   // Set up dynamic reconfigure
@@ -178,6 +199,7 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
+  int error_count = 0;
   while(ros::ok()){
     if(publish_multiecho){
       const sensor_msgs::MultiEchoLaserScanPtr msg(new sensor_msgs::MultiEchoLaserScan());
@@ -185,6 +207,7 @@ int main(int argc, char **argv)
         echoes_pub.publish(msg);
       } else {
         ROS_WARN("Could not grab multi echo scan.");
+        error_count++;
       }
     } else {
       const sensor_msgs::LaserScanPtr msg(new sensor_msgs::LaserScan());
@@ -192,7 +215,20 @@ int main(int argc, char **argv)
         laser_pub.publish(msg);
       } else {
         ROS_WARN("Could not grab single echo scan.");
+        error_count++;
       }
+    }
+
+    // Reestablish conneciton if things seem to have gone wrong.
+    if(error_count > error_limit){
+      error_count = 0;
+      ROS_ERROR("Error count exceeded limit, reconnecting.");
+      urg_->stop();
+      ros::Duration(2.0).sleep();
+      if(calibrate_time){
+        calibrate_time_offset();
+      }
+      urg_->start();
     }
     ros::spinOnce();
   }
