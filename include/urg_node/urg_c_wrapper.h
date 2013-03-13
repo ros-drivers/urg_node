@@ -59,31 +59,31 @@ namespace urg_node
 
     void stop();
 
-    double getRangeMin();
+    double getRangeMin() const;
 
-    double getRangeMax();
+    double getRangeMax() const;
 
-    double getAngleMin();
+    double getAngleMin() const;
 
-    double getAngleMax();
+    double getAngleMax() const;
 
-    double getAngleMinLimit();
+    double getAngleMinLimit() const;
 
-    double getAngleMaxLimit();
+    double getAngleMaxLimit() const;
 
-    double getAngleIncrement();
+    double getAngleIncrement() const;
 
-    double getScanPeriod();
+    double getScanPeriod() const;
 
-    double getTimeIncrement();
+    double getTimeIncrement() const;
 
-    std::string getIPAddress();
+    std::string getIPAddress() const;
 
-    int getIPPort();
+    int getIPPort() const;
 
-    std::string getSerialPort();
+    std::string getSerialPort() const;
 
-    int getSerialBaud();
+    int getSerialBaud() const;
 
     std::string getVendorName();
 
@@ -97,9 +97,9 @@ namespace urg_node
 
     std::string getDeviceID();
 
-    ros::Duration getComputedLatency();
+    ros::Duration getComputedLatency() const;
 
-    ros::Duration getUserTimeOffset();
+    ros::Duration getUserTimeOffset() const;
 
     std::string getSensorStatus();
 
@@ -126,7 +126,7 @@ namespace urg_node
 
     bool isMultiEchoSupported();
 
-    ros::Duration getAngularTimeOffset();
+    ros::Duration getAngularTimeOffset() const;
 
     ros::Duration getNativeClockOffset(size_t num_measurements);
 

@@ -245,54 +245,54 @@ bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
   return true;
 }
 
-double URGCWrapper::getRangeMin(){
+double URGCWrapper::getRangeMin() const{
   long minr;
   long maxr;
   urg_distance_min_max(&urg_, &minr, &maxr);
   return (double)minr/1000.0;
 }
 
-double URGCWrapper::getRangeMax(){
+double URGCWrapper::getRangeMax() const{
   long minr;
   long maxr;
   urg_distance_min_max(&urg_, &minr, &maxr);
   return (double)maxr/1000.0;
 }
 
-double URGCWrapper::getAngleMin(){
+double URGCWrapper::getAngleMin() const{
   return urg_step2rad(&urg_, first_step_);
 }
 
-double URGCWrapper::getAngleMax(){
+double URGCWrapper::getAngleMax() const{
   return urg_step2rad(&urg_, last_step_);
 }
 
-double URGCWrapper::getAngleMinLimit(){
+double URGCWrapper::getAngleMinLimit() const{
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
   return urg_step2rad(&urg_, min_step);
 }
 
-double URGCWrapper::getAngleMaxLimit(){
+double URGCWrapper::getAngleMaxLimit() const{
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
   return urg_step2rad(&urg_, max_step);
 }
 
-double URGCWrapper::getAngleIncrement(){
+double URGCWrapper::getAngleIncrement() const{
   double angle_min = getAngleMin();
   double angle_max = getAngleMax();
   return cluster_*(angle_max-angle_min)/(double)(last_step_-first_step_);
 }
 
-double URGCWrapper::getScanPeriod(){
+double URGCWrapper::getScanPeriod() const{
   long scan_usec = urg_scan_usec(&urg_);
   return 1.e-6*(double)(scan_usec);
 }
 
-double URGCWrapper::getTimeIncrement(){
+double URGCWrapper::getTimeIncrement() const{
   int min_step;
   int max_step;
   urg_step_min_max(&urg_, &min_step, &max_step);
@@ -302,19 +302,19 @@ double URGCWrapper::getTimeIncrement(){
 }
 
 
-std::string URGCWrapper::getIPAddress(){
+std::string URGCWrapper::getIPAddress() const{
   return ip_address_;
 }
 
-int URGCWrapper::getIPPort(){
+int URGCWrapper::getIPPort() const{
   return ip_port_;
 }
 
-std::string URGCWrapper::getSerialPort(){
+std::string URGCWrapper::getSerialPort() const{
   return serial_port_;
 }
 
-int URGCWrapper::getSerialBaud(){
+int URGCWrapper::getSerialBaud() const{
   return serial_baud_;
 }
 
@@ -342,11 +342,11 @@ std::string URGCWrapper::getDeviceID(){
   return std::string(urg_sensor_serial_id(&urg_));
 }
 
-ros::Duration URGCWrapper::getComputedLatency(){
+ros::Duration URGCWrapper::getComputedLatency() const{
   return system_latency_;
 }
 
-ros::Duration URGCWrapper::getUserTimeOffset(){
+ros::Duration URGCWrapper::getUserTimeOffset() const{
   return user_latency_;
 }
 
@@ -440,7 +440,7 @@ bool URGCWrapper::isMultiEchoSupported(){
   return true;
 }
 
-ros::Duration URGCWrapper::getAngularTimeOffset(){
+ros::Duration URGCWrapper::getAngularTimeOffset() const{
   // Adjust value for Hokuyo's timestamps
   // Hokuyo's timestamps start from the rear center of the device (at Pi according to ROS standards)
   double circle_fraction = 0.0;
