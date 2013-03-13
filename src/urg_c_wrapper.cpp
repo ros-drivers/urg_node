@@ -84,6 +84,13 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
   data_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
   intensity_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
 
+  started_ = false;
+  frame_id_ = "";
+  first_step_ = 0;
+  last_step_ = 0;
+  cluster_ = 1;
+  skip_ = 0;
+
   if(using_intensity){
   	using_intensity = isIntensitySupported();
   }
@@ -103,13 +110,6 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
 	} else if(use_multiecho_){
 		measurement_type_ = URG_MULTIECHO;
 	}
-
-  started_ = false;
-  frame_id_ = "";
-  first_step_ = 0;
-  last_step_ = 0;
-  cluster_ = 1;
-  skip_ = 0;
 }
 
 void URGCWrapper::start(){
@@ -414,8 +414,6 @@ bool URGCWrapper::isIntensitySupported(){
   if(started_){
   	return false; // Must not be streaming
   }
-
-  std::vector<long> data;
 
   urg_start_measurement(&urg_, URG_DISTANCE_INTENSITY, 0, 0);
   int ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], NULL, NULL);
