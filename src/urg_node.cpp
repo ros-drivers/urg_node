@@ -112,7 +112,7 @@ int main(int argc, char **argv)
   
   // Get parameters so we can change these later.
   std::string ip_address;
-  pnh.param<std::string>("ip_address", ip_address, "");
+  pnh.param<std::string>("ip_address", ip_address, "192.168.0.10");
   int ip_port;
   pnh.param<int>("ip_port", ip_port, 10940);
 
@@ -134,19 +134,41 @@ int main(int argc, char **argv)
   pnh.param<int>("error_limit", error_limit, 4);
   
   // Set up the urgwidget
-  try{
-    if(ip_address != ""){
-      urg_.reset(new urg_node::URGCWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
-    } else {
-      urg_.reset(new urg_node::URGCWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
+  std::string err_msg = "";
+  bool connection_failure = true;
+  
+  if(connection_failure)
+  {
+    try{
+        urg_.reset(new urg_node::URGCWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
+        connection_failure = false;
+    } catch(std::runtime_error& e){
+        err_msg = "Serial Port Connection Failed: " + 
+                  std::string(e.what()) + "\n";
     }
-  } catch(std::runtime_error& e){
-      ROS_FATAL("%s", e.what());
+  }
+  
+  if(connection_failure)
+  {
+    try{
+        urg_.reset(new urg_node::URGCWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
+        connection_failure = false;
+    } catch(std::runtime_error& e){
+        err_msg = err_msg + "Network Connection Failed: " +
+                  std::string(e.what()) + "\n";
+    }
+  }
+  
+  if(connection_failure)
+  {
+      ROS_FATAL("%s", err_msg.c_str());
       ros::spinOnce();
       ros::Duration(1.0).sleep();
       ros::shutdown();
-      return EXIT_FAILURE;
+      return EXIT_FAILURE;  
   }
+      
+  
 
   std::stringstream ss;
   ss << "Connected to";
