@@ -245,6 +245,10 @@ bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg){
   return true;
 }
 
+bool URGCWrapper::isStarted() const{
+  return started_;
+}
+
 double URGCWrapper::getRangeMin() const{
   long minr;
   long maxr;
