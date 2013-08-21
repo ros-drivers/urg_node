@@ -12,7 +12,7 @@
   <url type="bugtracker">https://github.com/ros-drivers/urg_node/issues</url>
   <url type="repository">https://github.com/ros-drivers/urg_node</url>
 
-  <author email="chadrockey@willowgarage.com">Chad Rockey</author>
+  <author email="chadrockey@gmail.com">Chad Rockey</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
