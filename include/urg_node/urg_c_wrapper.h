@@ -59,6 +59,8 @@ namespace urg_node
 
     void stop();
 
+    bool isStarted() const;
+
     double getRangeMin() const;
 
     double getRangeMax() const;

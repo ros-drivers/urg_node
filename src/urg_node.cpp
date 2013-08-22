@@ -27,8 +27,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
- * Author: Chad Rockey
+/*
+ * Author: Chad Rockey, Michael Carroll
  */
 
 #include <ros/ros.h>
@@ -40,9 +40,37 @@
 #include <urg_node/urg_c_wrapper.h>
 #include <laser_proc/LaserTransport.h>
 
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
+
 ///< @TODO Remove this and pass to the functions instead
 boost::shared_ptr<urg_node::URGCWrapper> urg_;
 boost::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_; ///< Dynamic reconfigure server
+
+// Useful typedefs
+typedef diagnostic_updater::FrequencyStatusParam FrequencyStatusParam;
+typedef diagnostic_updater::HeaderlessTopicDiagnostic TopicDiagnostic;
+typedef boost::shared_ptr<TopicDiagnostic> TopicDiagnosticPtr;
+
+boost::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+TopicDiagnosticPtr laser_freq_, echoes_freq_;
+
+bool close_diagnostics_;
+boost::thread diagnostics_thread_;
+
+/* Non-const device properties.  If you poll the driver for these
+ * while scanning is running, then the scan will probably fail.
+ */
+std::string device_status_;
+std::string vendor_name_;
+std::string product_name_;
+std::string firmware_version_;
+std::string firmware_date_;
+std::string protocol_version_;
+std::string device_id_;
+
+int error_count;
+double freq_min, freq_max;
 
 bool reconfigure_callback(urg_node::URGConfig& config, int level){
   if(level < 0){ // First call, initialize, laser not yet started
@@ -51,7 +79,7 @@ bool reconfigure_callback(urg_node::URGConfig& config, int level){
   } else if(level > 0){ // Must stop
     urg_->stop();
     ROS_INFO("Stopped data due to reconfigure.");
-    
+
     // Change values that required stopping
     urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
     urg_->setSkip(config.skip);
@@ -67,6 +95,11 @@ bool reconfigure_callback(urg_node::URGConfig& config, int level){
       return false;
     }
   }
+
+  // The publish frequency changes based on the number of skipped scans.
+  // Update accordingly here.
+  freq_min = 1.0/(urg_->getScanPeriod() * (config.skip + 1));
+  freq_max = freq_min;
 
   std::string frame_id = tf::resolve(config.tf_prefix, config.frame_id);
   urg_->setFrameId(frame_id);
@@ -103,13 +136,61 @@ void calibrate_time_offset(){
     }
 }
 
+
+// Diagnostics update task to be run in a thread.
+void updateDiagnostics() {
+    while(!close_diagnostics_) {
+        diagnostic_updater_->update();
+        boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    }
+}
+
+// Populate a diagnostics status message.
+void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat)
+{
+    if(urg_->getIPAddress() != "")
+    {
+        stat.add("IP Address", urg_->getIPAddress());
+        stat.add("IP Port", urg_->getIPPort());
+    } else {
+        stat.add("Serial Port", urg_->getSerialPort());
+        stat.add("Serial Baud", urg_->getSerialBaud());
+    }
+
+    if(!urg_->isStarted())
+    {
+      stat.summary(2, "Not Connected: " + device_status_);
+    } 
+    else if(device_status_ != std::string("Sensor works well.") && device_status_ != std::string("Stable 000 no error."))
+    {
+      stat.summary(2, "Abnormal status: " + device_status_);
+    }
+    else
+    {
+      stat.summary(0, "Streaming");
+    }
+
+    stat.add("Vendor Name", vendor_name_);
+    stat.add("Product Name", product_name_);
+    stat.add("Firmware Version", firmware_version_);
+    stat.add("Firmware Date", firmware_date_);
+    stat.add("Protocol Version", protocol_version_);
+    stat.add("Device ID", device_id_);
+    stat.add("Computed Latency", urg_->getComputedLatency());
+    stat.add("User Time Offset", urg_->getUserTimeOffset());
+
+    // Things not explicitly required by REP-0138, but still interesting.
+    stat.add("Device Status", device_status_);
+    stat.add("Error Count", error_count);
+}
+
 int main(int argc, char **argv)
 {
   // Initialize node and nodehandles
   ros::init(argc, argv, "urg_node");
   ros::NodeHandle n;
   ros::NodeHandle pnh("~");
-  
+
   // Get parameters so we can change these later.
   std::string ip_address;
   pnh.param<std::string>("ip_address", ip_address, "");
@@ -120,7 +201,7 @@ int main(int argc, char **argv)
   pnh.param<std::string>("serial_port", serial_port, "/dev/ttyACM0");
   int serial_baud;
   pnh.param<int>("serial_baud", serial_baud, 115200);
-  
+
   bool calibrate_time;
   pnh.param<bool>("calibrate_time", calibrate_time, false);
 
@@ -132,7 +213,7 @@ int main(int argc, char **argv)
 
   int error_limit;
   pnh.param<int>("error_limit", error_limit, 4);
-  
+
   // Set up the urgwidget
   try{
     if(ip_address != ""){
@@ -165,13 +246,32 @@ int main(int argc, char **argv)
   ss << " ID: " << urg_->getDeviceID();
   ROS_INFO_STREAM(ss.str());
 
-  // Set up publishers, we only need one
+  device_status_ = urg_->getSensorStatus();
+  vendor_name_ = urg_->getVendorName();
+  product_name_ = urg_->getProductName();
+  firmware_version_ = urg_->getFirmwareVersion();
+  firmware_date_ = urg_->getFirmwareDate();
+  protocol_version_ = urg_->getProtocolVersion();
+  device_id_ = urg_->getDeviceID();
+
+  diagnostic_updater_.reset(new diagnostic_updater::Updater);
+  diagnostic_updater_->setHardwareID(urg_->getDeviceID());
+  float diagnostics_tolerance = 0.05;
+  float diagnostics_window_time = 5.0;
+  diagnostic_updater_->add("Hardware Status", populateDiagnosticsStatus);
+
+  // Set up publishers and diagnostics updaters, we only need one
   ros::Publisher laser_pub;
   laser_proc::LaserPublisher echoes_pub;
+
   if(publish_multiecho){
     echoes_pub = laser_proc::LaserTransport::advertiseLaser(n, 20);
+    echoes_freq_.reset(new TopicDiagnostic("Laser Echoes", *diagnostic_updater_,
+                 FrequencyStatusParam(&freq_min, &freq_min, diagnostics_tolerance, diagnostics_window_time)));
   } else {
     laser_pub = n.advertise<sensor_msgs::LaserScan>("scan", 20);
+    laser_freq_.reset(new TopicDiagnostic("Laser Scan", *diagnostic_updater_,
+                FrequencyStatusParam(&freq_min, &freq_min, diagnostics_tolerance, diagnostics_window_time)));
   }
 
   if(calibrate_time){
@@ -187,7 +287,6 @@ int main(int argc, char **argv)
   dynamic_reconfigure::Server<urg_node::URGConfig>::CallbackType f;
   f = boost::bind(reconfigure_callback, _1, _2);
   srv_->setCallback(f);
-
   try{
     urg_->start();
     ROS_INFO("Streaming data.");
@@ -199,22 +298,31 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  int error_count = 0;
+  // Now that we are streaming, kick off diagnostics.
+  close_diagnostics_ = false;
+  diagnostics_thread_ = boost::thread(updateDiagnostics);
+
+  // Clear the error count.
+  error_count = 0;
   while(ros::ok()){
     if(publish_multiecho){
       const sensor_msgs::MultiEchoLaserScanPtr msg(new sensor_msgs::MultiEchoLaserScan());
       if(urg_->grabScan(msg)){
         echoes_pub.publish(msg);
+	echoes_freq_->tick();
       } else {
         ROS_WARN("Could not grab multi echo scan.");
+        device_status_ = urg_->getSensorStatus();
         error_count++;
       }
     } else {
       const sensor_msgs::LaserScanPtr msg(new sensor_msgs::LaserScan());
       if(urg_->grabScan(msg)){
         laser_pub.publish(msg);
+	laser_freq_->tick();
       } else {
         ROS_WARN("Could not grab single echo scan.");
+        device_status_ = urg_->getSensorStatus();
         error_count++;
       }
     }
@@ -232,6 +340,10 @@ int main(int argc, char **argv)
     }
     ros::spinOnce();
   }
+
+  // Clean up our diagnostics thread.
+  close_diagnostics_ = true;
+  diagnostics_thread_.join();
 
   return EXIT_SUCCESS;
 }
