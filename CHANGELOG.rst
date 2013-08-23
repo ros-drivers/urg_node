@@ -2,6 +2,10 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.5 (2013-08-22)
+------------------
+* Missing diagnostic_updater depend
+
 0.1.4 (2013-08-22)
 ------------------
 * Merge pull request `#2 <https://github.com/ros-drivers/urg_node/issues/2>`_ from mitll-ros-pkg/diagnostics
