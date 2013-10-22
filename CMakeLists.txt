@@ -39,6 +39,10 @@ add_executable(urg_node src/urg_node.cpp)
 add_dependencies(urg_node ${PROJECT_NAME}_gencfg)
 target_link_libraries(urg_node urg_c_wrapper ${catkin_LIBRARIES})
 
+## Declare getID tool
+add_executable(getID src/getID.cpp)
+target_link_libraries(getID urg_c_wrapper ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############
