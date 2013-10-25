@@ -51,8 +51,6 @@
 #define read _read
 #endif
 
-using namespace std;
-
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
     std::stringstream ss(s);
     std::string item;
@@ -114,9 +112,10 @@ main(int argc, char** argv)
 	ip_address = ip_split[0];
 	ip_port = atoi(ip_split[1].c_str());
   } else { // Invalid
-	  if (verbose)
-		printf("getID failed due to invalid specifier.\n");
-        return 1;
+	if (verbose){
+      printf("getID failed due to invalid specifier.\n");
+      return 1;
+    }
   }
   
   boost::shared_ptr<urg_node::URGCWrapper> urg_;
