@@ -2,6 +2,10 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.6 (2013-10-24)
+------------------
+* Added getID executable for udev users.
+
 0.1.5 (2013-08-22)
 ------------------
 * Missing diagnostic_updater depend
