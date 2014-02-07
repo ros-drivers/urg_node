@@ -81,8 +81,12 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, 
 }
 
 void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
-  data_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
-  intensity_.resize(urg_max_data_size(&urg_) * URG_MAX_ECHO);
+  int urg_data_size = urg_max_data_size(&urg_);
+  if(urg_data_size  > 5000){  // Ocassionally urg_max_data_size returns a string pointer, make sure we don't allocate too much space, the current known max is 1440 steps
+    urg_data_size = 5000;
+  }
+  data_.resize(urg_data_size * URG_MAX_ECHO);
+  intensity_.resize(urg_data_size * URG_MAX_ECHO);
 
   started_ = false;
   frame_id_ = "";
