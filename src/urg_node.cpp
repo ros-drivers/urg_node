@@ -215,18 +215,24 @@ int main(int argc, char **argv)
   pnh.param<int>("error_limit", error_limit, 4);
 
   // Set up the urgwidget
-  try{
-    if(ip_address != ""){
-      urg_.reset(new urg_node::URGCWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
-    } else {
-      urg_.reset(new urg_node::URGCWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
-    }
-  } catch(std::runtime_error& e){
-      ROS_FATAL("%s", e.what());
+  while(ros::ok()){
+    try{
+      if(ip_address != ""){
+        urg_.reset(new urg_node::URGCWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
+      } else {
+        urg_.reset(new urg_node::URGCWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
+      }
+      break;
+    } catch(std::runtime_error& e){
+      ROS_ERROR_THROTTLE(10.0, "%s", e.what());
       ros::spinOnce();
       ros::Duration(1.0).sleep();
-      ros::shutdown();
-      return EXIT_FAILURE;
+    }
+  }
+
+  // Handle if we're shutting down
+  if(!ros::ok()){
+    return EXIT_SUCCESS;
   }
 
   std::stringstream ss;
@@ -287,15 +293,23 @@ int main(int argc, char **argv)
   dynamic_reconfigure::Server<urg_node::URGConfig>::CallbackType f;
   f = boost::bind(reconfigure_callback, _1, _2);
   srv_->setCallback(f);
-  try{
-    urg_->start();
-    ROS_INFO("Streaming data.");
-  } catch(std::runtime_error& e){
-    ROS_FATAL("%s", e.what());
-    ros::spinOnce();
-    ros::Duration(1.0).sleep();
-    ros::shutdown();
-    return EXIT_FAILURE;
+
+  // Start the urgwidget
+  while(ros::ok()){
+    try{
+      urg_->start();
+      ROS_INFO("Streaming data.");
+      break;
+    } catch(std::runtime_error& e){
+      ROS_ERROR_THROTTLE(10.0, "%s", e.what());
+      ros::spinOnce();
+      ros::Duration(1.0).sleep();
+    }
+  }
+
+  // Handle if we're shutting down
+  if(!ros::ok()){
+    return EXIT_SUCCESS;
   }
 
   // Now that we are streaming, kick off diagnostics.
@@ -309,9 +323,9 @@ int main(int argc, char **argv)
       const sensor_msgs::MultiEchoLaserScanPtr msg(new sensor_msgs::MultiEchoLaserScan());
       if(urg_->grabScan(msg)){
         echoes_pub.publish(msg);
-	echoes_freq_->tick();
+        echoes_freq_->tick();
       } else {
-        ROS_WARN("Could not grab multi echo scan.");
+        ROS_WARN_THROTTLE(10.0, "Could not grab multi echo scan.");
         device_status_ = urg_->getSensorStatus();
         error_count++;
       }
@@ -319,9 +333,9 @@ int main(int argc, char **argv)
       const sensor_msgs::LaserScanPtr msg(new sensor_msgs::LaserScan());
       if(urg_->grabScan(msg)){
         laser_pub.publish(msg);
-	laser_freq_->tick();
+        laser_freq_->tick();
       } else {
-        ROS_WARN("Could not grab single echo scan.");
+        ROS_WARN_THROTTLE(10.0, "Could not grab single echo scan.");
         device_status_ = urg_->getSensorStatus();
         error_count++;
       }
@@ -330,13 +344,18 @@ int main(int argc, char **argv)
     // Reestablish conneciton if things seem to have gone wrong.
     if(error_count > error_limit){
       error_count = 0;
-      ROS_ERROR("Error count exceeded limit, reconnecting.");
+      ROS_ERROR_THROTTLE(10.0, "Error count exceeded limit, reconnecting.");
       urg_->stop();
       ros::Duration(2.0).sleep();
       if(calibrate_time){
         calibrate_time_offset();
       }
-      urg_->start();
+      try{
+        urg_->start();
+        ROS_INFO("Restarted data stream.");
+      } catch(std::runtime_error& e){
+        ros::Duration(1.0).sleep();
+      }
     }
     ros::spinOnce();
   }
