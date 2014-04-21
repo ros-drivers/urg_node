@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.7 (2014-04-21)
+------------------
 * Added more robust plug/unplug reconnect behavior.
 * Added more robustness and the ability to continually reloop and reconnect until node is shutdown.
 * Fix initialization crash.
