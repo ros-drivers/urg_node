@@ -160,8 +160,10 @@ void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat
     if(!urg_->isStarted())
     {
       stat.summary(2, "Not Connected: " + device_status_);
-    } 
-    else if(device_status_ != std::string("Sensor works well.") && device_status_ != std::string("Stable 000 no error."))
+    }
+    else if(device_status_ != std::string("Sensor works well.") &&
+            device_status_ != std::string("Stable 000 no error.") &&
+            device_status_ != std::string("sensor is working normally"))
     {
       stat.summary(2, "Abnormal status: " + device_status_);
     }
