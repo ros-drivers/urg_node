@@ -2,6 +2,13 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#6 <https://github.com/ros-drivers/urg_node/issues/6>`_ from mikeferguson/indigo-devel
+  Add default device status on UST-20LX
+* Add default device status on UST-20LX
+* Contributors: Chad Rockey, Michael Ferguson
+
 0.1.7 (2014-04-21)
 ------------------
 * Added more robust plug/unplug reconnect behavior.
