@@ -61,6 +61,12 @@ install(DIRECTORY include/${PROJECT_NAME}/
    PATTERN ".svn" EXCLUDE
 )
 
+## Install script to set IP addresses
+install(PROGRAMS
+   scripts/set_urg_ip.py
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
 #   # myfile1
