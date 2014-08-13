@@ -2,6 +2,14 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#7 <https://github.com/ros-drivers/urg_node/issues/7>`_ from mikeferguson/indigo-devel
+  add a script to set the IP address of an URG laser
+* Updated diagnostics to support configurable parameters.
+* add a script to set the IP address of an URG laser
+* Contributors: Chad Rockey, Michael Ferguson
+
 0.1.8 (2014-06-16)
 ------------------
 * Merge pull request `#6 <https://github.com/ros-drivers/urg_node/issues/6>`_ from mikeferguson/indigo-devel
