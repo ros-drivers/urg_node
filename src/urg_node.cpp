@@ -69,8 +69,8 @@ std::string firmware_date_;
 std::string protocol_version_;
 std::string device_id_;
 
-int error_count;
-double freq_min, freq_max;
+int error_count_;
+double freq_min_;
 
 bool reconfigure_callback(urg_node::URGConfig& config, int level){
   if(level < 0){ // First call, initialize, laser not yet started
@@ -98,8 +98,7 @@ bool reconfigure_callback(urg_node::URGConfig& config, int level){
 
   // The publish frequency changes based on the number of skipped scans.
   // Update accordingly here.
-  freq_min = 1.0/(urg_->getScanPeriod() * (config.skip + 1));
-  freq_max = freq_min;
+  freq_min_ = 1.0/(urg_->getScanPeriod() * (config.skip + 1));
 
   std::string frame_id = tf::resolve(config.tf_prefix, config.frame_id);
   urg_->setFrameId(frame_id);
@@ -183,7 +182,7 @@ void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat
 
     // Things not explicitly required by REP-0138, but still interesting.
     stat.add("Device Status", device_status_);
-    stat.add("Error Count", error_count);
+    stat.add("Error Count", error_count_);
 }
 
 int main(int argc, char **argv)
@@ -215,6 +214,11 @@ int main(int argc, char **argv)
 
   int error_limit;
   pnh.param<int>("error_limit", error_limit, 4);
+
+  double diagnostics_tolerance;
+  pnh.param<double>("diagnostics_tolerance", diagnostics_tolerance, 0.05);
+  double diagnostics_window_time;
+  pnh.param<double>("diagnostics_window_time", diagnostics_window_time, 5.0);
 
   // Set up publishers and diagnostics updaters, we only need one
   ros::Publisher laser_pub;
@@ -288,15 +292,13 @@ int main(int argc, char **argv)
 	  diagnostic_updater_.reset(new diagnostic_updater::Updater);
 	  diagnostic_updater_->setHardwareID(urg_->getDeviceID());
 	  diagnostic_updater_->add("Hardware Status", populateDiagnosticsStatus);
-		float diagnostics_tolerance = 0.05;
-		float diagnostics_window_time = 5.0;
 		close_diagnostics_ = true;
 	  if(publish_multiecho){
 	    echoes_freq_.reset(new TopicDiagnostic("Laser Echoes", *diagnostic_updater_,
-	                 FrequencyStatusParam(&freq_min, &freq_min, diagnostics_tolerance, diagnostics_window_time)));
+	                 FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance, diagnostics_window_time)));
 	  } else {
 	    laser_freq_.reset(new TopicDiagnostic("Laser Scan", *diagnostic_updater_,
-	                FrequencyStatusParam(&freq_min, &freq_min, diagnostics_tolerance, diagnostics_window_time)));
+	                FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance, diagnostics_window_time)));
 	  }
 
 	  if(calibrate_time){
@@ -334,7 +336,7 @@ int main(int argc, char **argv)
 	  diagnostics_thread_ = boost::thread(updateDiagnostics);
 
 	  // Clear the error count.
-	  error_count = 0;
+	  error_count_ = 0;
 	  while(ros::ok()){
 	  	try{
 		    if(publish_multiecho){
@@ -345,7 +347,7 @@ int main(int argc, char **argv)
 		      } else {
 		        ROS_WARN_THROTTLE(10.0, "Could not grab multi echo scan.");
 		        device_status_ = urg_->getSensorStatus();
-		        error_count++;
+		        error_count_++;
 		      }
 		    } else {
 		      const sensor_msgs::LaserScanPtr msg(new sensor_msgs::LaserScan());
@@ -355,16 +357,16 @@ int main(int argc, char **argv)
 		      } else {
 		        ROS_WARN_THROTTLE(10.0, "Could not grab single echo scan.");
 		        device_status_ = urg_->getSensorStatus();
-		        error_count++;
+		        error_count_++;
 		      }
 		    }
 		   } catch(...){
 		   		ROS_ERROR_THROTTLE(10.0, "Unknown error grabbing Hokuyo scan.");
-		   		error_count++;
+		   		error_count_++;
 		   }
 
 	    // Reestablish conneciton if things seem to have gone wrong.
-	    if(error_count > error_limit){
+	    if(error_count_ > error_limit){
 	      ROS_ERROR_THROTTLE(10.0, "Error count exceeded limit, reconnecting.");
 	      urg_->stop();
 	      ros::Duration(2.0).sleep();
