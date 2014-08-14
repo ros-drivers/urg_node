@@ -35,7 +35,7 @@
 
 using namespace urg_node;
 
-URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho){
+URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho, bool &no_range_as_inf){
   // Store for comprehensive diagnostics
   ip_address_ = ip_address;
   ip_port_ = ip_port;
@@ -55,10 +55,11 @@ URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool&
     throw std::runtime_error(ss.str());
   }
 
-  initialize(using_intensity, using_multiecho);
+  initialize(using_intensity, using_multiecho, no_range_as_inf);
 }
 
-URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho){
+URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho, 
+                         bool &no_range_as_inf){
   // Store for comprehensive diagnostics
   serial_baud_ = serial_baud;
   serial_port_ = serial_port;
@@ -77,10 +78,10 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, 
     throw std::runtime_error(ss.str());
   }
 
-  initialize(using_intensity, using_multiecho);
+  initialize(using_intensity, using_multiecho, no_range_as_inf);
 }
 
-void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
+void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho, bool &no_range_as_inf){
   int urg_data_size = urg_max_data_size(&urg_);
   if(urg_data_size  > 5000){  // Ocassionally urg_max_data_size returns a string pointer, make sure we don't allocate too much space, the current known max is 1440 steps
     urg_data_size = 5000;
@@ -106,6 +107,7 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
   use_intensity_ = using_intensity;
 	use_multiecho_ = using_multiecho;
 
+	no_range_as_inf_ = no_range_as_inf;
 	measurement_type_ = URG_DISTANCE;
 	if(use_intensity_ && use_multiecho_){
 		measurement_type_ = URG_MULTIECHO_INTENSITY;
@@ -184,8 +186,12 @@ bool URGCWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
       	msg->intensities[i] = intensity_[i];
   	  }
     } else {
-      msg->ranges[i] = std::numeric_limits<float>::quiet_NaN();
-      continue;
+      if(no_range_as_inf_){
+        msg->ranges[i] = std::numeric_limits<float>::infinity();
+      }
+      else{
+        msg->ranges[i] = std::numeric_limits<float>::quiet_NaN();
+      }
     }  
   }
   return true;
