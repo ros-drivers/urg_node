@@ -192,7 +192,6 @@ bool URGCWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg){
       else{
         msg->ranges[i] = std::numeric_limits<float>::quiet_NaN();
       }
-      continue;
     }  
   }
   return true;
