@@ -48,7 +48,7 @@ target_link_libraries(getID urg_c_wrapper ${catkin_LIBRARIES})
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS urg_c_wrapper urg_node
+install(TARGETS urg_c_wrapper urg_node getID
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
