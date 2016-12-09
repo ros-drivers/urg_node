@@ -74,6 +74,8 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, 
     ss << "Could not open serial Hokuyo:\n";
     ss << serial_port << " @ " << serial_baud << "\n";
     ss << urg_error(&urg_);
+    stop();
+    urg_close(&urg_);
     throw std::runtime_error(ss.str());
   }
 
@@ -88,6 +90,8 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
     std::stringstream ss;
     ss << "Could not initialize Hokuyo:\n";
     ss << urg_error(&urg_);
+    stop();
+    urg_close(&urg_);
     throw std::runtime_error(ss.str());
   }
 
