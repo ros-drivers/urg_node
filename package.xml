@@ -4,7 +4,7 @@
   <version>0.1.9</version>
   <description>urg_node</description>
 
-  <maintainer email="chadrockey@gmail.com">Chad Rockey</maintainer>
+  <maintainer email="tony.baltovski@gmail.com">Tony Baltovski</maintainer>
 
   <license>BSD</license>
 
@@ -35,7 +35,7 @@
   <run_depend>tf</run_depend>
   <run_depend>laser_proc</run_depend>
   <run_depend>diagnostic_updater</run_depend>
-  
+
   <export>
   </export>
 </package>
