@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.10 (2017-03-21)
+-------------------
 * Updated maintainer.
 * Error handling for connection failures
 * Created urg_lidar.launch
