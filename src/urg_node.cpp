@@ -246,8 +246,8 @@ int main(int argc, char **argv)
       ros::spinOnce();
       ros::Duration(1.0).sleep();
       continue; // Return to top of master loop
-    } catch(...){
-      ROS_ERROR_THROTTLE(10.0, "Unknown error connecting to Hokuyo");
+    } catch(std::exception& e){
+      ROS_ERROR_THROTTLE(10.0, "Unknown error connecting to Hokuyo: %s", e.what());
       ros::spinOnce();
       ros::Duration(1.0).sleep();
       continue; // Return to top of master loop

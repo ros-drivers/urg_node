@@ -74,6 +74,8 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, 
     ss << "Could not open serial Hokuyo:\n";
     ss << serial_port << " @ " << serial_baud << "\n";
     ss << urg_error(&urg_);
+    stop();
+    urg_close(&urg_);
     throw std::runtime_error(ss.str());
   }
 
@@ -82,6 +84,17 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port, 
 
 void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho){
   int urg_data_size = urg_max_data_size(&urg_);
+  // urg_max_data_size can return a negative, error code value. Resizing based on this value will fail.
+  if (urg_data_size < 0) {
+    urg_.last_errno = urg_data_size;
+    std::stringstream ss;
+    ss << "Could not initialize Hokuyo:\n";
+    ss << urg_error(&urg_);
+    stop();
+    urg_close(&urg_);
+    throw std::runtime_error(ss.str());
+  }
+
   if(urg_data_size  > 5000){  // Ocassionally urg_max_data_size returns a string pointer, make sure we don't allocate too much space, the current known max is 1440 steps
     urg_data_size = 5000;
   }
