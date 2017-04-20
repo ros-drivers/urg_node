@@ -28,12 +28,12 @@
  */
 
 /*
- * Author: Chad Rockey, Michael Carroll
+ * Author: Chad Rockey, Michael Carroll, Mike O'Driscoll
  */
 
+#include <string>
 #include <ros/ros.h>
-
-#include <tf/tf.h> // tf header for resolving tf prefix
+#include <tf/tf.h>  // tf header for resolving tf prefix
 #include <dynamic_reconfigure/server.h>
 #include <urg_node/URGConfig.h>
 
@@ -45,7 +45,7 @@
 
 ///< @TODO Remove this and pass to the functions instead
 boost::shared_ptr<urg_node::URGCWrapper> urg_;
-boost::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_; ///< Dynamic reconfigure server
+boost::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
 
 // Useful typedefs
 typedef diagnostic_updater::FrequencyStatusParam FrequencyStatusParam;
@@ -72,11 +72,15 @@ std::string device_id_;
 int error_count_;
 double freq_min_;
 
-bool reconfigure_callback(urg_node::URGConfig& config, int level){
-  if(level < 0){ // First call, initialize, laser not yet started
+bool reconfigure_callback(urg_node::URGConfig& config, int level)
+{
+  if (level < 0)  // First call, initialize, laser not yet started
+  {
     urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
     urg_->setSkip(config.skip);
-  } else if(level > 0){ // Must stop
+  }
+  else if (level > 0)   // Must stop
+  {
     urg_->stop();
     ROS_INFO("Stopped data due to reconfigure.");
 
@@ -84,10 +88,13 @@ bool reconfigure_callback(urg_node::URGConfig& config, int level){
     urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
     urg_->setSkip(config.skip);
 
-    try{
+    try
+    {
       urg_->start();
       ROS_INFO("Streaming data after reconfigure.");
-    } catch(std::runtime_error& e){
+    }
+    catch (std::runtime_error& e)
+    {
       ROS_FATAL("%s", e.what());
       ros::spinOnce();
       ros::Duration(1.0).sleep();
@@ -98,7 +105,7 @@ bool reconfigure_callback(urg_node::URGConfig& config, int level){
 
   // The publish frequency changes based on the number of skipped scans.
   // Update accordingly here.
-  freq_min_ = 1.0/(urg_->getScanPeriod() * (config.skip + 1));
+  freq_min_ = 1.0 / (urg_->getScanPeriod() * (config.skip + 1));
 
   std::string frame_id = tf::resolve(config.tf_prefix, config.frame_id);
   urg_->setFrameId(frame_id);
@@ -107,7 +114,8 @@ bool reconfigure_callback(urg_node::URGConfig& config, int level){
   return true;
 }
 
-void update_reconfigure_limits(){
+void update_reconfigure_limits()
+{
   urg_node::URGConfig min, max;
   srv_->getConfigMin(min);
   srv_->getConfigMax(max);
@@ -116,73 +124,81 @@ void update_reconfigure_limits(){
   min.angle_max = min.angle_min;
   max.angle_max = urg_->getAngleMaxLimit();
   max.angle_min = max.angle_max;
-  
+
   srv_->setConfigMin(min);
   srv_->setConfigMax(max);
 }
 
-void calibrate_time_offset(){
-     try{
-      ROS_INFO("Starting calibration. This will take a few seconds.");
-      ROS_WARN("Time calibration is still experimental.");
-      ros::Duration latency = urg_->computeLatency(10);
-      ROS_INFO("Calibration finished. Latency is: %.4f.", latency.toSec());
-    } catch(std::runtime_error& e){
-      ROS_FATAL("Could not calibrate time offset:%s", e.what());
-      ros::spinOnce();
-      ros::Duration(1.0).sleep();
-      ros::shutdown();
-    }
+void calibrate_time_offset()
+{
+  try
+  {
+    ROS_INFO("Starting calibration. This will take a few seconds.");
+    ROS_WARN("Time calibration is still experimental.");
+    ros::Duration latency = urg_->computeLatency(10);
+    ROS_INFO("Calibration finished. Latency is: %.4f.", latency.toSec());
+  }
+  catch (std::runtime_error& e)
+  {
+    ROS_FATAL("Could not calibrate time offset:%s", e.what());
+    ros::spinOnce();
+    ros::Duration(1.0).sleep();
+    ros::shutdown();
+  }
 }
 
 
 // Diagnostics update task to be run in a thread.
-void updateDiagnostics() {
-    while(!close_diagnostics_) {
-        diagnostic_updater_->update();
-        boost::this_thread::sleep(boost::posix_time::milliseconds(10));
-    }
+void updateDiagnostics()
+{
+  while (!close_diagnostics_)
+  {
+    diagnostic_updater_->update();
+    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+  }
 }
 
 // Populate a diagnostics status message.
 void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat)
 {
-    if(urg_->getIPAddress() != "")
-    {
-        stat.add("IP Address", urg_->getIPAddress());
-        stat.add("IP Port", urg_->getIPPort());
-    } else {
-        stat.add("Serial Port", urg_->getSerialPort());
-        stat.add("Serial Baud", urg_->getSerialBaud());
-    }
+  if (urg_->getIPAddress() != "")
+  {
+    stat.add("IP Address", urg_->getIPAddress());
+    stat.add("IP Port", urg_->getIPPort());
+  }
+  else
+  {
+    stat.add("Serial Port", urg_->getSerialPort());
+    stat.add("Serial Baud", urg_->getSerialBaud());
+  }
 
-    if(!urg_->isStarted())
-    {
-      stat.summary(2, "Not Connected: " + device_status_);
-    }
-    else if(device_status_ != std::string("Sensor works well.") &&
-            device_status_ != std::string("Stable 000 no error.") &&
-            device_status_ != std::string("sensor is working normally"))
-    {
-      stat.summary(2, "Abnormal status: " + device_status_);
-    }
-    else
-    {
-      stat.summary(0, "Streaming");
-    }
+  if (!urg_->isStarted())
+  {
+    stat.summary(2, "Not Connected: " + device_status_);
+  }
+  else if (device_status_ != std::string("Sensor works well.") &&
+           device_status_ != std::string("Stable 000 no error.") &&
+           device_status_ != std::string("sensor is working normally"))
+  {
+    stat.summary(2, "Abnormal status: " + device_status_);
+  }
+  else
+  {
+    stat.summary(0, "Streaming");
+  }
 
-    stat.add("Vendor Name", vendor_name_);
-    stat.add("Product Name", product_name_);
-    stat.add("Firmware Version", firmware_version_);
-    stat.add("Firmware Date", firmware_date_);
-    stat.add("Protocol Version", protocol_version_);
-    stat.add("Device ID", device_id_);
-    stat.add("Computed Latency", urg_->getComputedLatency());
-    stat.add("User Time Offset", urg_->getUserTimeOffset());
+  stat.add("Vendor Name", vendor_name_);
+  stat.add("Product Name", product_name_);
+  stat.add("Firmware Version", firmware_version_);
+  stat.add("Firmware Date", firmware_date_);
+  stat.add("Protocol Version", protocol_version_);
+  stat.add("Device ID", device_id_);
+  stat.add("Computed Latency", urg_->getComputedLatency());
+  stat.add("User Time Offset", urg_->getUserTimeOffset());
 
-    // Things not explicitly required by REP-0138, but still interesting.
-    stat.add("Device Status", device_status_);
-    stat.add("Error Count", error_count_);
+  // Things not explicitly required by REP-0138, but still interesting.
+  stat.add("Device Status", device_status_);
+  stat.add("Error Count", error_count_);
 }
 
 int main(int argc, char **argv)
@@ -227,154 +243,197 @@ int main(int argc, char **argv)
   close_diagnostics_ = true;
 
   // Set up the urgwidget
-  while(ros::ok()){
-    try{
-    	// Stop diagnostics
-    	if(!close_diagnostics_){
-	      close_diagnostics_ = true;
-	      diagnostics_thread_.join();
+  while (ros::ok())
+  {
+    try
+    {
+      // Stop diagnostics
+      if (!close_diagnostics_)
+      {
+        close_diagnostics_ = true;
+        diagnostics_thread_.join();
       }
-    	urg_.reset(); // Clear any previous connections();
-    	ros::Duration(1.0).sleep();
-      if(ip_address != ""){
+      urg_.reset();  // Clear any previous connections();
+      ros::Duration(1.0).sleep();
+      if (ip_address != "")
+      {
         urg_.reset(new urg_node::URGCWrapper(ip_address, ip_port, publish_intensity, publish_multiecho));
-      } else {
+      }
+      else
+      {
         urg_.reset(new urg_node::URGCWrapper(serial_baud, serial_port, publish_intensity, publish_multiecho));
       }
-    } catch(std::runtime_error& e){
+    }
+    catch (std::runtime_error& e)
+    {
       ROS_ERROR_THROTTLE(10.0, "Error connecting to Hokuyo: %s", e.what());
       ros::spinOnce();
       ros::Duration(1.0).sleep();
-      continue; // Return to top of master loop
-    } catch(std::exception& e){
+      continue;  // Return to top of master loop
+    }
+    catch (std::exception& e)
+    {
       ROS_ERROR_THROTTLE(10.0, "Unknown error connecting to Hokuyo: %s", e.what());
       ros::spinOnce();
       ros::Duration(1.0).sleep();
-      continue; // Return to top of master loop
+      continue;  // Return to top of master loop
     }
 
-	  std::stringstream ss;
-	  ss << "Connected to";
-	  if(publish_multiecho){
-	    ss << " multiecho";
-	  }
-	  if(ip_address != ""){
-	    ss << " network";
-	  } else {
-	    ss << " serial";
-	  }
-	  ss << " device with";
-	  if(publish_intensity){
-	    ss << " intensity and";
-	  }
-	  ss << " ID: " << urg_->getDeviceID();
-	  ROS_INFO_STREAM(ss.str());
+    std::stringstream ss;
+    ss << "Connected to";
+    if (publish_multiecho)
+    {
+      ss << " multiecho";
+    }
+    if (ip_address != "")
+    {
+      ss << " network";
+    }
+    else
+    {
+      ss << " serial";
+    }
+    ss << " device with";
+    if (publish_intensity)
+    {
+      ss << " intensity and";
+    }
+    ss << " ID: " << urg_->getDeviceID();
+    ROS_INFO_STREAM(ss.str());
 
-	  // Set up publishers and diagnostics updaters, we only need one
-	  if(publish_multiecho){
-	  	if(!echoes_pub){
-	    	echoes_pub = laser_proc::LaserTransport::advertiseLaser(n, 20);
-	    }
-	  } else {
-	  	if(!laser_pub){
-	    	laser_pub = n.advertise<sensor_msgs::LaserScan>("scan", 20);
-	    }
-	  }
+    // Set up publishers and diagnostics updaters, we only need one
+    if (publish_multiecho)
+    {
+      if (!echoes_pub)
+      {
+        echoes_pub = laser_proc::LaserTransport::advertiseLaser(n, 20);
+      }
+    }
+    else
+    {
+      if (!laser_pub)
+      {
+        laser_pub = n.advertise<sensor_msgs::LaserScan>("scan", 20);
+      }
+    }
 
-	  device_status_ = urg_->getSensorStatus();
-	  vendor_name_ = urg_->getVendorName();
-	  product_name_ = urg_->getProductName();
-	  firmware_version_ = urg_->getFirmwareVersion();
-	  firmware_date_ = urg_->getFirmwareDate();
-	  protocol_version_ = urg_->getProtocolVersion();
-	  device_id_ = urg_->getDeviceID();
+    device_status_ = urg_->getSensorStatus();
+    vendor_name_ = urg_->getVendorName();
+    product_name_ = urg_->getProductName();
+    firmware_version_ = urg_->getFirmwareVersion();
+    firmware_date_ = urg_->getFirmwareDate();
+    protocol_version_ = urg_->getProtocolVersion();
+    device_id_ = urg_->getDeviceID();
 
-	  diagnostic_updater_.reset(new diagnostic_updater::Updater);
-	  diagnostic_updater_->setHardwareID(urg_->getDeviceID());
-	  diagnostic_updater_->add("Hardware Status", populateDiagnosticsStatus);
-		close_diagnostics_ = true;
-	  if(publish_multiecho){
-	    echoes_freq_.reset(new TopicDiagnostic("Laser Echoes", *diagnostic_updater_,
-	                 FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance, diagnostics_window_time)));
-	  } else {
-	    laser_freq_.reset(new TopicDiagnostic("Laser Scan", *diagnostic_updater_,
-	                FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance, diagnostics_window_time)));
-	  }
+    diagnostic_updater_.reset(new diagnostic_updater::Updater);
+    diagnostic_updater_->setHardwareID(urg_->getDeviceID());
+    diagnostic_updater_->add("Hardware Status", populateDiagnosticsStatus);
+    close_diagnostics_ = true;
+    if (publish_multiecho)
+    {
+      echoes_freq_.reset(new TopicDiagnostic("Laser Echoes", *diagnostic_updater_,
+            FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance, diagnostics_window_time)));
+    }
+    else
+    {
+      laser_freq_.reset(new TopicDiagnostic("Laser Scan", *diagnostic_updater_,
+            FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance, diagnostics_window_time)));
+    }
 
-	  if(calibrate_time){
-	    calibrate_time_offset();
-	  }
+    if (calibrate_time)
+    {
+      calibrate_time_offset();
+    }
 
-	  // Set up dynamic reconfigure
-	  srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>());
+    // Set up dynamic reconfigure
+    srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>());
 
-	  // Configure limits (Must do this after creating the urgwidget)
-	  update_reconfigure_limits();
+    // Configure limits (Must do this after creating the urgwidget)
+    update_reconfigure_limits();
 
-	  dynamic_reconfigure::Server<urg_node::URGConfig>::CallbackType f;
-	  f = boost::bind(reconfigure_callback, _1, _2);
-	  srv_->setCallback(f);
+    dynamic_reconfigure::Server<urg_node::URGConfig>::CallbackType f;
+    f = boost::bind(reconfigure_callback, _1, _2);
+    srv_->setCallback(f);
 
-	  // Start the urgwidget
-    try{
+    // Start the urgwidget
+    try
+    {
       urg_->start();
       ROS_INFO("Streaming data.");
-    } catch(std::runtime_error& e){
+    }
+    catch (std::runtime_error& e)
+    {
       ROS_ERROR_THROTTLE(10.0, "Error starting Hokuyo: %s", e.what());
       ros::spinOnce();
       ros::Duration(1.0).sleep();
-      continue; // Return to top of main loop
-    } catch(...){
+      continue;  // Return to top of main loop
+    }
+    catch (...)
+    {
       ROS_ERROR_THROTTLE(10.0, "Unknown error starting Hokuyo");
       ros::spinOnce();
       ros::Duration(1.0).sleep();
-      continue; // Return to top of main loop
+      continue;  // Return to top of main loop
     }
 
-	  // Now that we are streaming, kick off diagnostics.
-	  close_diagnostics_ = false;
-	  diagnostics_thread_ = boost::thread(updateDiagnostics);
+    // Now that we are streaming, kick off diagnostics.
+    close_diagnostics_ = false;
+    diagnostics_thread_ = boost::thread(updateDiagnostics);
 
-	  // Clear the error count.
-	  error_count_ = 0;
-	  while(ros::ok()){
-	  	try{
-		    if(publish_multiecho){
-		      const sensor_msgs::MultiEchoLaserScanPtr msg(new sensor_msgs::MultiEchoLaserScan());
-		      if(urg_->grabScan(msg)){
-		        echoes_pub.publish(msg);
-		        echoes_freq_->tick();
-		      } else {
-		        ROS_WARN_THROTTLE(10.0, "Could not grab multi echo scan.");
-		        device_status_ = urg_->getSensorStatus();
-		        error_count_++;
-		      }
-		    } else {
-		      const sensor_msgs::LaserScanPtr msg(new sensor_msgs::LaserScan());
-		      if(urg_->grabScan(msg)){
-		        laser_pub.publish(msg);
-		        laser_freq_->tick();
-		      } else {
-		        ROS_WARN_THROTTLE(10.0, "Could not grab single echo scan.");
-		        device_status_ = urg_->getSensorStatus();
-		        error_count_++;
-		      }
-		    }
-		   } catch(...){
-		   		ROS_ERROR_THROTTLE(10.0, "Unknown error grabbing Hokuyo scan.");
-		   		error_count_++;
-		   }
+    // Clear the error count.
+    error_count_ = 0;
+    while (ros::ok())
+    {
+      try
+      {
+        if (publish_multiecho)
+        {
+          const sensor_msgs::MultiEchoLaserScanPtr msg(new sensor_msgs::MultiEchoLaserScan());
+          if (urg_->grabScan(msg))
+          {
+            echoes_pub.publish(msg);
+            echoes_freq_->tick();
+          }
+          else
+          {
+            ROS_WARN_THROTTLE(10.0, "Could not grab multi echo scan.");
+            device_status_ = urg_->getSensorStatus();
+            error_count_++;
+          }
+        }
+        else
+        {
+          const sensor_msgs::LaserScanPtr msg(new sensor_msgs::LaserScan());
+          if (urg_->grabScan(msg))
+          {
+            laser_pub.publish(msg);
+            laser_freq_->tick();
+          }
+          else
+          {
+            ROS_WARN_THROTTLE(10.0, "Could not grab single echo scan.");
+            device_status_ = urg_->getSensorStatus();
+            error_count_++;
+          }
+        }
+      }
+      catch (...)
+      {
+        ROS_ERROR_THROTTLE(10.0, "Unknown error grabbing Hokuyo scan.");
+        error_count_++;
+      }
 
-	    // Reestablish conneciton if things seem to have gone wrong.
-	    if(error_count_ > error_limit){
-	      ROS_ERROR_THROTTLE(10.0, "Error count exceeded limit, reconnecting.");
-	      urg_->stop();
-	      ros::Duration(2.0).sleep();
-	      ros::spinOnce();
-	      break; // Return to top of main loop
-	    }
-	    ros::spinOnce();
-	  }
+      // Reestablish conneciton if things seem to have gone wrong.
+      if (error_count_ > error_limit)
+      {
+        ROS_ERROR_THROTTLE(10.0, "Error count exceeded limit, reconnecting.");
+        urg_->stop();
+        ros::Duration(2.0).sleep();
+        ros::spinOnce();
+        break;  // Return to top of main loop
+      }
+      ros::spinOnce();
+    }
   }
 
   // Clean up our diagnostics thread.

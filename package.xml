@@ -13,6 +13,7 @@
   <url type="repository">https://github.com/ros-drivers/urg_node</url>
 
   <author email="chadrockey@gmail.com">Chad Rockey</author>
+  <author email="modriscoll@clearpath.ai">Mike O'Driscoll</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -35,6 +36,8 @@
   <run_depend>tf</run_depend>
   <run_depend>laser_proc</run_depend>
   <run_depend>diagnostic_updater</run_depend>
+
+  <test_depend>roslint</test_depend>
 
   <export>
   </export>

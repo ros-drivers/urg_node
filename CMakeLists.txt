@@ -1,21 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(urg_node)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs urg_c rosconsole nodelet dynamic_reconfigure tf laser_proc diagnostic_updater)
+find_package(catkin REQUIRED COMPONENTS
+  diagnostic_updater dynamic_reconfigure laser_proc nodelet rosconsole roscpp sensor_msgs tf urg_c
+)
 
 # Dynamic reconfigure support
 generate_dynamic_reconfigure_options(cfg/URG.cfg)
 
-###################################################
-## Declare things to be passed to other projects ##
-###################################################
-
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES urg_c_wrapper
@@ -23,11 +15,6 @@ catkin_package(
   DEPENDS
 )
 
-###########
-## Build ##
-###########
-
-## Specify additional locations of header files
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
@@ -42,10 +29,6 @@ target_link_libraries(urg_node urg_c_wrapper ${catkin_LIBRARIES})
 ## Declare getID tool
 add_executable(getID src/getID.cpp)
 target_link_libraries(getID urg_c_wrapper ${catkin_LIBRARIES})
-
-#############
-## Install ##
-#############
 
 ## Mark executables and/or libraries for installation
 install(TARGETS urg_c_wrapper urg_node getID
@@ -67,22 +50,11 @@ install(PROGRAMS
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
-
-#############
-## Testing ##
-#############
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_urg_library_wrapper.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+if(CATKIN_ENABLE_TESTING)
+  find_package(roslint)
+  # Ignore long -> int32_t warning, urg_c driver uses
+  # long, etc. Wrapper must also use these
+  set(ROSLINT_CPP_OPTS "--filter=-runtime/references,-runtime/int")
+  roslint_cpp()
+  roslint_add_test()
+endif()

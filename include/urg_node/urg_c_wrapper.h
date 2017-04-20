@@ -27,16 +27,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Author: Chad Rockey
  */
 
-#ifndef URG_C_WRAPPER_H
-#define URG_C_WRAPPER_H
+#ifndef URG_NODE_URG_C_WRAPPER_H
+#define URG_NODE_URG_C_WRAPPER_H
 
 #include <stdexcept>
 #include <sstream>
-#include <limits>
+#include <vector>
+#include <string>
 
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/MultiEchoLaserScan.h>
@@ -45,121 +46,119 @@
 #include <urg_c/urg_utils.h>
 
 namespace urg_node
-{ 
-  class URGCWrapper
-  {
-  public:
-    URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
+{
+class URGCWrapper
+{
+public:
+  URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
 
-    URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
+  URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
 
-    ~URGCWrapper();
+  ~URGCWrapper();
 
-    void start();
+  void start();
 
-    void stop();
+  void stop();
 
-    bool isStarted() const;
+  bool isStarted() const;
 
-    double getRangeMin() const;
+  double getRangeMin() const;
 
-    double getRangeMax() const;
+  double getRangeMax() const;
 
-    double getAngleMin() const;
+  double getAngleMin() const;
 
-    double getAngleMax() const;
+  double getAngleMax() const;
 
-    double getAngleMinLimit() const;
+  double getAngleMinLimit() const;
 
-    double getAngleMaxLimit() const;
+  double getAngleMaxLimit() const;
 
-    double getAngleIncrement() const;
+  double getAngleIncrement() const;
 
-    double getScanPeriod() const;
+  double getScanPeriod() const;
 
-    double getTimeIncrement() const;
+  double getTimeIncrement() const;
 
-    std::string getIPAddress() const;
+  std::string getIPAddress() const;
 
-    int getIPPort() const;
+  int getIPPort() const;
 
-    std::string getSerialPort() const;
+  std::string getSerialPort() const;
 
-    int getSerialBaud() const;
+  int getSerialBaud() const;
 
-    std::string getVendorName();
+  std::string getVendorName();
 
-    std::string getProductName();
+  std::string getProductName();
 
-    std::string getFirmwareVersion();
+  std::string getFirmwareVersion();
 
-    std::string getFirmwareDate();
+  std::string getFirmwareDate();
 
-    std::string getProtocolVersion();
+  std::string getProtocolVersion();
 
-    std::string getDeviceID();
+  std::string getDeviceID();
 
-    ros::Duration getComputedLatency() const;
+  ros::Duration getComputedLatency() const;
 
-    ros::Duration getUserTimeOffset() const;
+  ros::Duration getUserTimeOffset() const;
 
-    std::string getSensorStatus();
+  std::string getSensorStatus();
 
-    std::string getSensorState();
+  std::string getSensorState();
 
-    void setFrameId(const std::string& frame_id);
+  void setFrameId(const std::string& frame_id);
 
-    void setUserLatency(const double latency);
+  void setUserLatency(const double latency);
 
-    bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
+  bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
 
-    bool setSkip(int skip);
+  bool setSkip(int skip);
 
-    ros::Duration computeLatency(size_t num_measurements);
+  ros::Duration computeLatency(size_t num_measurements);
 
-    bool grabScan(const sensor_msgs::LaserScanPtr& msg);
+  bool grabScan(const sensor_msgs::LaserScanPtr& msg);
 
-    bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
+  bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
 
-  private:
-    void initialize(bool& using_intensity, bool& using_multiecho);
+private:
+  void initialize(bool& using_intensity, bool& using_multiecho);
 
-    bool isIntensitySupported();
+  bool isIntensitySupported();
 
-    bool isMultiEchoSupported();
+  bool isMultiEchoSupported();
 
-    ros::Duration getAngularTimeOffset() const;
+  ros::Duration getAngularTimeOffset() const;
 
-    ros::Duration getNativeClockOffset(size_t num_measurements);
+  ros::Duration getNativeClockOffset(size_t num_measurements);
 
-    ros::Duration getTimeStampOffset(size_t num_measurements);
+  ros::Duration getTimeStampOffset(size_t num_measurements);
 
-    std::string frame_id_; ///< Output frame_id for each laserscan.
+  std::string frame_id_;  ///< Output frame_id for each laserscan.
 
-    urg_t urg_;
-    bool started_;
+  urg_t urg_;
+  bool started_;
 
-    std::vector<long> data_;
-    std::vector<unsigned short> intensity_;
+  std::vector<long> data_;
+  std::vector<unsigned short> intensity_;
 
-    bool use_intensity_;
-    bool use_multiecho_;
-    urg_measurement_type_t measurement_type_;
-    int first_step_;
-    int last_step_;
-    int cluster_;
-    int skip_;
+  bool use_intensity_;
+  bool use_multiecho_;
+  urg_measurement_type_t measurement_type_;
+  int first_step_;
+  int last_step_;
+  int cluster_;
+  int skip_;
 
-    ros::Duration system_latency_;
-    ros::Duration user_latency_;
+  ros::Duration system_latency_;
+  ros::Duration user_latency_;
 
-    std::string ip_address_;
-    int ip_port_;
-    std::string serial_port_;
-    int serial_baud_;
-  };
-  
-  
-}; // urg_node
+  std::string ip_address_;
+  int ip_port_;
+  std::string serial_port_;
+  int serial_baud_;
+};
+}  // namespace urg_node
 
-#endif
+#endif  // URG_NODE_URG_C_WRAPPER_H
