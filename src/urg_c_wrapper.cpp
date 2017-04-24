@@ -31,10 +31,12 @@
  * Author: Chad Rockey, Mike O'Driscoll
  */
 
+#include "ros/ros.h"
 #include <urg_node/urg_c_wrapper.h>
 #include <limits>
 #include <string>
 #include <vector>
+#include <boost/crc.hpp>
 
 namespace urg_node
 {
@@ -312,6 +314,193 @@ bool URGCWrapper::grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg)
   }
 
   return true;
+}
+
+bool URGCWrapper::getAR00Status(URGStatus& status)
+{
+  // Construct and write AR00 command.
+  std::string str_cmd;
+  str_cmd += 0x02;  // STX
+  str_cmd.append("000EAR00A012");  // AR00 cmd with length and checksum.
+  str_cmd += 0x03;  // ETX
+
+  // Get the response
+  std::string response = sendCommand(str_cmd);
+
+  ROS_DEBUG_STREAM("Full response: " << response);
+
+  // Strip STX and ETX before calculating the CRC.
+  response.erase(0, 1);
+  response.erase(response.size() - 1, 1);
+
+  // Get the CRC, it's the last 4 chars.
+  std::stringstream ss;
+  ss << response.substr(response.size() - 4, 4);
+  uint16_t crc;
+  ss >> std::hex >> crc;
+
+  // Remove the CRC from the check.
+  std::string msg = response.substr(0, response.size() - 4);
+  // Check the checksum.
+  uint16_t checksum_result = checkCRC(msg.data(), msg.size());
+
+  if (checksum_result != crc)
+  {
+    ROS_WARN("Received bad frame, incorrect checksum");
+    return false;
+  }
+
+  // Debug output reponse up to scan data.
+  ROS_DEBUG_STREAM("Response: " << response.substr(0, 41));
+  // Decode the result if crc checks out.
+  // Grab the status
+  ss.clear();
+  ROS_DEBUG_STREAM("Status " << response.substr(8, 2));
+  ss << response.substr(8, 2);  // Status is 8th position 2 chars.
+  ss >> std::hex >> status.status;
+
+  if (status.status != 0)
+  {
+    ROS_WARN("Received bad status");
+    return false;
+  }
+
+  // Grab the operating mode
+  ss.clear();
+  ROS_DEBUG_STREAM("Operating mode " << response.substr(10, 1););
+  ss << response.substr(10, 1);
+  ss >> std::hex >> status.operating_mode;
+
+  // Grab the area number
+  ss.clear();
+  ss << response.substr(11, 2);
+  ROS_DEBUG_STREAM("Area Number " << response.substr(11, 2));
+  ss >> std::hex >> status.area_number;
+  // Per documentation add 1 to offset area number
+  status.area_number++;
+
+  // Grab the Error Status
+  ss.clear();
+  ss << response.substr(13, 1);
+  ROS_DEBUG_STREAM("Error status " << response.substr(13, 1));
+  ss >> std::hex >> status.error_status;
+
+
+  // Grab the error code
+  ss.clear();
+  ss << response.substr(14, 2);
+  ROS_DEBUG_STREAM("Error code " << std::hex << response.substr(14, 2));
+  ss >> std::hex >> status.error_code;
+  // Offset by 0x40 is non-zero as per documentation
+  if (status.error_code != 0)
+  {
+     status.error_code += 0x40;
+  }
+
+  // Get the lockout status
+  ss.clear();
+  ss << response.substr(16, 1);
+  ROS_DEBUG_STREAM("Lockout " << response.substr(16, 1));
+  ss >> std::hex >> status.lockout_status;
+
+  return true;
+}
+
+uint16_t URGCWrapper::checkCRC(const char* bytes, const uint32_t size)
+{
+  boost::crc_optimal<16, 0x1021, 0, 0, true, true>  crc_kermit_type;
+  crc_kermit_type.process_bytes(bytes, size);
+  return crc_kermit_type.checksum();
+}
+
+std::string URGCWrapper::sendCommand(std::string cmd)
+{
+  std::string result;
+  bool restart = false;
+
+  if (isStarted())
+  {
+    restart = true;
+    // Scan must stop before sending a command
+    stop();
+  }
+
+  // Get the socket reference and send
+  int sock = urg_.connection.tcpclient.sock_desc;
+  write(sock, cmd.c_str(), cmd.size());
+
+  // All serial command structures start with STX + LEN as
+  // the first 5 bytes, read those in.
+  size_t total_read_len = 0;
+  size_t read_len = 0;
+  // Read in the header, make sure we get all 5 bytes expcted
+  char recvb[5] = {0};
+  ssize_t expected_read = 5;
+  while (total_read_len < expected_read)
+  {
+    read_len = read(sock, recvb + total_read_len, expected_read - total_read_len);  // READ STX
+    total_read_len += read_len;
+    if (read_len <= 0)
+    {
+      ROS_ERROR("Read socket failed: %s", strerror(errno));
+      result.clear();
+      return result;
+    }
+  }
+
+  std::string recv_header(recvb, read_len);
+  // Convert the read len from hex chars to int.
+  std::stringstream ss;
+  ss << recv_header.substr(1, 4);
+  ss >> std::hex >> expected_read;
+  ROS_DEBUG_STREAM("Read len " << expected_read);
+
+  // Already read len of 5, take that out.
+  uint32_t arr_size = expected_read - 5;
+  // Bounds check the size, we really shouldn't exceed 8703 bytes
+  // based on the currently known messages on the hokuyo documentations
+  if (arr_size > 10000)
+  {
+    ROS_ERROR("Buffer creation bounds exceeded, shouldn't allocate: %u bytes", arr_size);
+    result.clear();
+    return result;
+  }
+
+  ROS_DEBUG_STREAM("Creating buffer read of arr_Size: " << arr_size);
+  // Create buffer space for read.
+  boost::shared_array<char> data;
+  data.reset(new char[arr_size]);
+
+  // Read the remaining command
+  total_read_len = 0;
+  read_len = 0;
+  expected_read = arr_size;
+
+  ROS_DEBUG_STREAM("Expected body size: " << expected_read);
+  while (total_read_len < expected_read)
+  {
+    read_len = read(sock, data.get()+total_read_len, expected_read - total_read_len);
+    total_read_len += read_len;
+    ROS_DEBUG_STREAM("Read in after header " << read_len);
+    if (read_len <= 0)
+    {
+      ROS_ERROR("Read socket failed: %s", strerror(errno));
+      result.clear();
+      return result;
+    }
+  }
+
+  // Combine the read portions to return for processing.
+  result += recv_header;
+  result += std::string(data.get(), expected_read);
+
+  // Resume scan after sending.
+  if (restart)
+  {
+    start();
+  }
+
+  return result;
 }
 
 bool URGCWrapper::isStarted() const

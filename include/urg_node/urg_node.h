@@ -42,6 +42,7 @@
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
 #include <urg_node/URGConfig.h>
+#include <std_srvs/Trigger.h>
 
 #include "urg_node/urg_c_wrapper.h"
 
@@ -52,16 +53,29 @@ class UrgNode
 public:
   UrgNode();
   ~UrgNode();
+
+  /**
+   * @brief Start's the nodes threads to run the lidar.
+   */
   void run();
 
+  /**
+   * @brief Trigger an update of the lidar's status
+   * publish the latest known information about the lidar on latched topic.
+   * @return True on update successful, false otherwise.
+   */
+  bool updateStatus();
+
 private:
-  void connect();
+  bool connect();
   bool reconfigure_callback(urg_node::URGConfig& config, int level);
   void update_reconfigure_limits();
   void calibrate_time_offset();
   void updateDiagnostics();
   void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat);
   void scanThread();
+
+  bool statusCallback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
@@ -75,6 +89,8 @@ private:
   boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
   boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
 
+  boost::mutex lidar_mutex_;
+
   /* Non-const device properties.  If you poll the driver for these
   * while scanning is running, then the scan will probably fail.
   */
@@ -85,6 +101,8 @@ private:
   std::string firmware_date_;
   std::string protocol_version_;
   std::string device_id_;
+  uint16_t error_code_;
+  bool lockout_status_;
 
   int error_count_;
   double freq_min_;
@@ -102,8 +120,13 @@ private:
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
 
+  volatile bool service_yield_;
+
   ros::Publisher laser_pub_;
   laser_proc::LaserPublisher echoes_pub_;
+  ros::Publisher status_pub_;
+
+  ros::ServiceServer status_service_;
 };
 
 }  // namespace urg_node

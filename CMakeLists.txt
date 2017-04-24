@@ -2,18 +2,28 @@ cmake_minimum_required(VERSION 2.8.3)
 project(urg_node)
 
 find_package(catkin REQUIRED COMPONENTS
-  diagnostic_updater dynamic_reconfigure laser_proc nodelet rosconsole roscpp sensor_msgs tf urg_c
+  diagnostic_updater dynamic_reconfigure laser_proc message_generation
+  nodelet rosconsole roscpp sensor_msgs std_msgs tf urg_c
 )
 
 # Dynamic reconfigure support
 generate_dynamic_reconfigure_options(cfg/URG.cfg)
 
+add_message_files(FILES
+  LidarStatus.msg
+)
+
+generate_messages(
+  DEPENDENCIES std_msgs
+)
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES urg_c_wrapper
-  CATKIN_DEPENDS roscpp sensor_msgs urg_c rosconsole nodelet dynamic_reconfigure laser_proc
+  CATKIN_DEPENDS dynamic_reconfigure laser_proc message_runtime nodelet rosconsole roscpp sensor_msgs urg_c
   DEPENDS
 )
+
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
@@ -23,7 +33,7 @@ target_link_libraries(urg_c_wrapper ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(urg_node src/urg_node.cpp)
-add_dependencies(urg_node ${PROJECT_NAME}_gencfg)
+add_dependencies(urg_node ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
 target_link_libraries(urg_node urg_c_wrapper ${catkin_LIBRARIES})
 
 ## Declare getID tool

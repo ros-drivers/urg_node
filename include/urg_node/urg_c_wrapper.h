@@ -47,6 +47,28 @@
 
 namespace urg_node
 {
+
+class URGStatus
+{
+public:
+  URGStatus()
+  {
+    status = 0;
+    operating_mode = 0;
+    area_number = 0;
+    error_status = false;
+    error_code = 0;
+    lockout_status = false;
+  }
+
+  uint16_t status;
+  uint16_t operating_mode;
+  uint16_t area_number;
+  bool error_status;
+  uint16_t error_code;
+  bool lockout_status;
+};
+
 class URGCWrapper
 {
 public:
@@ -122,6 +144,8 @@ public:
 
   bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
 
+  bool getAR00Status(URGStatus& status);
+
 private:
   void initialize(bool& using_intensity, bool& using_multiecho);
 
@@ -134,6 +158,22 @@ private:
   ros::Duration getNativeClockOffset(size_t num_measurements);
 
   ros::Duration getTimeStampOffset(size_t num_measurements);
+
+  /**
+   * @brief calculate the crc of a given set of bytes.
+   * @param bytes The bytes array to be processed.
+   * @param size The size of the bytes array.
+   * @return the calculated CRC of the bytes.
+   */
+  uint16_t checkCRC(const char* bytes, const uint32_t size);
+
+  /**
+   * @brief Send an arbitrary serial command to the lidar. These commands
+   * can also be sent via the ethernet socket.
+   * @param cmd The arbitrary command fully formatted to be sent as provided
+   * @returns The textual response of the Lidar, empty if, but may return lidar's own error string.
+   */
+  std::string sendCommand(std::string cmd);
 
   std::string frame_id_;  ///< Output frame_id for each laserscan.
 

@@ -36,6 +36,7 @@
 #include <tf/tf.h>  // tf header for resolving tf prefix
 #include <string>
 #include <diagnostic_msgs/DiagnosticStatus.h>
+#include <urg_node/LidarStatus.h>
 
 namespace urg_node
 {
@@ -49,6 +50,10 @@ UrgNode::UrgNode():
 {
   close_diagnostics_ = true;
   close_scan_ = true;
+  service_yield_ = false;
+
+  error_code_ = 0;
+  lockout_status_ = false;
   // Initialize node and nodehandles
 
   // Get parameters so we can change these later.
@@ -58,7 +63,7 @@ UrgNode::UrgNode():
   pnh_.param<int>("serial_baud", serial_baud_, 115200);
   pnh_.param<bool>("calibrate_time", calibrate_time_, false);
   pnh_.param<bool>("publish_intensity", publish_intensity_, true);
-  pnh_.param<bool>("publish_multiecho", publish_multiecho_, true);
+  pnh_.param<bool>("publish_multiecho", publish_multiecho_, false);
   pnh_.param<int>("error_limit", error_limit_, 4);
   pnh_.param<double>("diagnostics_tolerance", diagnostics_tolerance_, 0.05);
   pnh_.param<double>("diagnostics_window_time", diagnostics_window_time_, 5.0);
@@ -72,6 +77,9 @@ UrgNode::UrgNode():
   {
     laser_pub_ = nh_.advertise<sensor_msgs::LaserScan>("scan", 20);
   }
+
+  status_service_ = nh_.advertiseService("update_laser_status", &UrgNode::statusCallback, this);
+  status_pub_ = nh_.advertise<urg_node::LidarStatus>("laser_status", 1, true);
 
   diagnostic_updater_.reset(new diagnostic_updater::Updater);
   diagnostic_updater_->add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
@@ -90,6 +98,66 @@ UrgNode::~UrgNode()
     close_scan_ = true;
     scan_thread_.join();
   }
+}
+
+bool UrgNode::updateStatus()
+{
+  bool result = false;
+  service_yield_ = true;
+  boost::mutex::scoped_lock lock(lidar_mutex_);
+
+  if (urg_)
+  {
+    device_status_ = urg_->getSensorStatus();
+
+    URGStatus status;
+    if (urg_->getAR00Status(status))
+    {
+      urg_node::LidarStatus msg;
+      msg.status = status.status;
+      msg.operating_mode = status.operating_mode;
+      msg.area_number = status.area_number;
+      msg.error_status = status.error_status;
+      msg.error_code = status.error_code;
+      msg.lockout_status = status.lockout_status;
+
+      lockout_status_ = status.lockout_status;
+      error_code_ = status.error_code;
+
+      // Publish the status on the latched topic for inspection.
+      status_pub_.publish(msg);
+      result = true;
+    }
+    else
+    {
+      ROS_WARN("Failed to retrieve status");
+
+      urg_node::LidarStatus msg;
+      msg.status = status.status;
+      status_pub_.publish(msg);
+    }
+  }
+  return result;
+}
+
+bool UrgNode::statusCallback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+{
+  ROS_INFO("Got update lidar status callback");
+  res.success = false;
+  res.message = "Lidar not ready";
+
+  if (updateStatus())
+  {
+    res.message = "Status retrieved";
+    res.success = true;
+  }
+  else
+  {
+    res.message = "Failed to update status";
+    res.success = false;
+  }
+
+  return true;
 }
 
 bool UrgNode::reconfigure_callback(urg_node::URGConfig& config, int level)
@@ -162,6 +230,7 @@ void UrgNode::update_reconfigure_limits()
 
 void UrgNode::calibrate_time_offset()
 {
+  boost::mutex::scoped_lock lock(lidar_mutex_);
   if (!urg_)
   {
     ROS_DEBUG_THROTTLE(10, "Unable to calibrate time offset. Not Ready.");
@@ -169,6 +238,7 @@ void UrgNode::calibrate_time_offset()
   }
   try
   {
+    // Don't let outside interruption effect lidar offset.
     ROS_INFO("Starting calibration. This will take a few seconds.");
     ROS_WARN("Time calibration is still experimental.");
     ros::Duration latency = urg_->computeLatency(10);
@@ -176,7 +246,7 @@ void UrgNode::calibrate_time_offset()
   }
   catch (std::runtime_error& e)
   {
-    ROS_FATAL("Could not calibrate time offset:%s", e.what());
+    ROS_FATAL("Could not calibrate time offset: %s", e.what());
     ros::Duration(1.0).sleep();
     ros::shutdown();
   }
@@ -189,7 +259,7 @@ void UrgNode::updateDiagnostics()
   while (!close_diagnostics_)
   {
     diagnostic_updater_->update();
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
   }
 }
 
@@ -226,6 +296,17 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
     stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR,
         "Abnormal status: " + device_status_);
   }
+  else if (error_code_ != 0)
+  {
+    stat.summaryf(diagnostic_msgs::DiagnosticStatus::ERROR,
+        "Lidar reporting error code: %X",
+        error_code_);
+  }
+  else if (lockout_status_)
+  {
+    stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR,
+        "Lidar locked out.");
+  }
   else
   {
     stat.summary(diagnostic_msgs::DiagnosticStatus::OK,
@@ -243,11 +324,18 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
 
   // Things not explicitly required by REP-0138, but still interesting.
   stat.add("Device Status", device_status_);
-  stat.add("Error Count", error_count_);
+  stat.add("Scan Retrieve Error Count", error_count_);
+
+  stat.add("Lidar Error Code", error_code_);
+  stat.add("Locked out", lockout_status_);
 }
 
-void UrgNode::connect()
+bool UrgNode::connect()
 {
+  // Don't let external access to retrieve
+  // status during the connection process.
+  boost::mutex::scoped_lock lock(lidar_mutex_);
+
   try
   {
     urg_.reset();  // Clear any previous connections();
@@ -290,22 +378,27 @@ void UrgNode::connect()
     protocol_version_ = urg_->getProtocolVersion();
     device_id_ = urg_->getDeviceID();
 
-
     if (diagnostic_updater_ && urg_)
     {
       diagnostic_updater_->setHardwareID(urg_->getDeviceID());
     }
+
+    return true;
   }
   catch (std::runtime_error& e)
   {
     ROS_ERROR_THROTTLE(10.0, "Error connecting to Hokuyo: %s", e.what());
     urg_.reset();
+    return false;
   }
   catch (std::exception& e)
   {
     ROS_ERROR_THROTTLE(10.0, "Unknown error connecting to Hokuyo: %s", e.what());
     urg_.reset();
+    return false;
   }
+
+  return false;
 }
 
 void UrgNode::scanThread()
@@ -314,8 +407,13 @@ void UrgNode::scanThread()
   {
     if (!urg_)
     {
-      connect();
+      if (!connect())
+      {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+        continue;  // Connect failed, sleep, try again.
+      }
     }
+
     // Configure limits (Must do this after creating the urgwidget)
     update_reconfigure_limits();
 
@@ -324,11 +422,27 @@ void UrgNode::scanThread()
       calibrate_time_offset();
     }
 
-    // Set up dynamic reconfigure
-    srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>());
-    // Configure limits (Must do this after creating the urgwidget)
-    update_reconfigure_limits();
-    srv_->setCallback(boost::bind(&UrgNode::reconfigure_callback, this, _1, _2));
+    // Clear the dynamic reconfigure server
+    srv_.reset();
+    // Spin once to de-register it's services before making a new
+    // service next.
+    ros::spinOnce();
+
+    if (!urg_ || !ros::ok)
+    {
+      continue;
+    }
+    else
+    {
+      // Set up dynamic reconfigure
+      srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>());
+      // Configure limits (Must do this after creating the urgwidget)
+      update_reconfigure_limits();
+      srv_->setCallback(boost::bind(&UrgNode::reconfigure_callback, this, _1, _2));
+    }
+
+    // Before starting, update the status
+    updateStatus();
 
     // Start the urgwidget
     try
@@ -339,6 +453,7 @@ void UrgNode::scanThread()
       {
         continue;  // Return to top of main loop, not connected.
       }
+      device_status_ = urg_->getSensorStatus();
       urg_->start();
       ROS_INFO("Streaming data.");
       // Clear the error count.
@@ -361,8 +476,10 @@ void UrgNode::scanThread()
 
     while (!close_scan_)
     {
+      // Don't allow external access during grabbing the scan.
       try
       {
+        boost::mutex::scoped_lock lock(lidar_mutex_);
         if (publish_multiecho_)
         {
           const sensor_msgs::MultiEchoLaserScanPtr msg(new sensor_msgs::MultiEchoLaserScan());
@@ -400,12 +517,19 @@ void UrgNode::scanThread()
         error_count_++;
       }
 
+      if (service_yield_)
+      {
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+        service_yield_ = false;
+      }
+
       // Reestablish conneciton if things seem to have gone wrong.
       if (error_count_ > error_limit_)
       {
         ROS_ERROR_THROTTLE(10.0, "Error count exceeded limit, reconnecting.");
         urg_.reset();
         ros::Duration(2.0).sleep();
+
         break;  // Return to top of main loop
       }
     }
