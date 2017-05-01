@@ -27,16 +27,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Author: Chad Rockey
  */
 
-#ifndef URG_C_WRAPPER_H
-#define URG_C_WRAPPER_H
+#ifndef URG_NODE_URG_C_WRAPPER_H
+#define URG_NODE_URG_C_WRAPPER_H
 
 #include <stdexcept>
 #include <sstream>
-#include <limits>
+#include <vector>
+#include <string>
 
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/MultiEchoLaserScan.h>
@@ -45,121 +46,159 @@
 #include <urg_c/urg_utils.h>
 
 namespace urg_node
-{ 
-  class URGCWrapper
+{
+
+class URGStatus
+{
+public:
+  URGStatus()
   {
-  public:
-    URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
+    status = 0;
+    operating_mode = 0;
+    area_number = 0;
+    error_status = false;
+    error_code = 0;
+    lockout_status = false;
+  }
 
-    URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
+  uint16_t status;
+  uint16_t operating_mode;
+  uint16_t area_number;
+  bool error_status;
+  uint16_t error_code;
+  bool lockout_status;
+};
 
-    ~URGCWrapper();
+class URGCWrapper
+{
+public:
+  URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
 
-    void start();
+  URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
 
-    void stop();
+  ~URGCWrapper();
 
-    bool isStarted() const;
+  void start();
 
-    double getRangeMin() const;
+  void stop();
 
-    double getRangeMax() const;
+  bool isStarted() const;
 
-    double getAngleMin() const;
+  double getRangeMin() const;
 
-    double getAngleMax() const;
+  double getRangeMax() const;
 
-    double getAngleMinLimit() const;
+  double getAngleMin() const;
 
-    double getAngleMaxLimit() const;
+  double getAngleMax() const;
 
-    double getAngleIncrement() const;
+  double getAngleMinLimit() const;
 
-    double getScanPeriod() const;
+  double getAngleMaxLimit() const;
 
-    double getTimeIncrement() const;
+  double getAngleIncrement() const;
 
-    std::string getIPAddress() const;
+  double getScanPeriod() const;
 
-    int getIPPort() const;
+  double getTimeIncrement() const;
 
-    std::string getSerialPort() const;
+  std::string getIPAddress() const;
 
-    int getSerialBaud() const;
+  int getIPPort() const;
 
-    std::string getVendorName();
+  std::string getSerialPort() const;
 
-    std::string getProductName();
+  int getSerialBaud() const;
 
-    std::string getFirmwareVersion();
+  std::string getVendorName();
 
-    std::string getFirmwareDate();
+  std::string getProductName();
 
-    std::string getProtocolVersion();
+  std::string getFirmwareVersion();
 
-    std::string getDeviceID();
+  std::string getFirmwareDate();
 
-    ros::Duration getComputedLatency() const;
+  std::string getProtocolVersion();
 
-    ros::Duration getUserTimeOffset() const;
+  std::string getDeviceID();
 
-    std::string getSensorStatus();
+  ros::Duration getComputedLatency() const;
 
-    std::string getSensorState();
+  ros::Duration getUserTimeOffset() const;
 
-    void setFrameId(const std::string& frame_id);
+  std::string getSensorStatus();
 
-    void setUserLatency(const double latency);
+  std::string getSensorState();
 
-    bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
+  void setFrameId(const std::string& frame_id);
 
-    bool setSkip(int skip);
+  void setUserLatency(const double latency);
 
-    ros::Duration computeLatency(size_t num_measurements);
+  bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
 
-    bool grabScan(const sensor_msgs::LaserScanPtr& msg);
+  bool setSkip(int skip);
 
-    bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
+  ros::Duration computeLatency(size_t num_measurements);
 
-  private:
-    void initialize(bool& using_intensity, bool& using_multiecho);
+  bool grabScan(const sensor_msgs::LaserScanPtr& msg);
 
-    bool isIntensitySupported();
+  bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
 
-    bool isMultiEchoSupported();
+  bool getAR00Status(URGStatus& status);
 
-    ros::Duration getAngularTimeOffset() const;
+private:
+  void initialize(bool& using_intensity, bool& using_multiecho);
 
-    ros::Duration getNativeClockOffset(size_t num_measurements);
+  bool isIntensitySupported();
 
-    ros::Duration getTimeStampOffset(size_t num_measurements);
+  bool isMultiEchoSupported();
 
-    std::string frame_id_; ///< Output frame_id for each laserscan.
+  ros::Duration getAngularTimeOffset() const;
 
-    urg_t urg_;
-    bool started_;
+  ros::Duration getNativeClockOffset(size_t num_measurements);
 
-    std::vector<long> data_;
-    std::vector<unsigned short> intensity_;
+  ros::Duration getTimeStampOffset(size_t num_measurements);
 
-    bool use_intensity_;
-    bool use_multiecho_;
-    urg_measurement_type_t measurement_type_;
-    int first_step_;
-    int last_step_;
-    int cluster_;
-    int skip_;
+  /**
+   * @brief calculate the crc of a given set of bytes.
+   * @param bytes The bytes array to be processed.
+   * @param size The size of the bytes array.
+   * @return the calculated CRC of the bytes.
+   */
+  uint16_t checkCRC(const char* bytes, const uint32_t size);
 
-    ros::Duration system_latency_;
-    ros::Duration user_latency_;
+  /**
+   * @brief Send an arbitrary serial command to the lidar. These commands
+   * can also be sent via the ethernet socket.
+   * @param cmd The arbitrary command fully formatted to be sent as provided
+   * @returns The textual response of the Lidar, empty if, but may return lidar's own error string.
+   */
+  std::string sendCommand(std::string cmd);
 
-    std::string ip_address_;
-    int ip_port_;
-    std::string serial_port_;
-    int serial_baud_;
-  };
-  
-  
-}; // urg_node
+  std::string frame_id_;  ///< Output frame_id for each laserscan.
 
-#endif
+  urg_t urg_;
+  bool started_;
+
+  std::vector<long> data_;
+  std::vector<unsigned short> intensity_;
+
+  bool use_intensity_;
+  bool use_multiecho_;
+  urg_measurement_type_t measurement_type_;
+  int first_step_;
+  int last_step_;
+  int cluster_;
+  int skip_;
+
+  ros::Duration system_latency_;
+  ros::Duration user_latency_;
+
+  std::string ip_address_;
+  int ip_port_;
+  std::string serial_port_;
+  int serial_baud_;
+};
+}  // namespace urg_node
+
+#endif  // URG_NODE_URG_C_WRAPPER_H
