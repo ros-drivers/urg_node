@@ -34,11 +34,11 @@ target_link_libraries(urg_c_wrapper ${catkin_LIBRARIES})
 
 # Declare the cpp as a lib also
 add_library(urg_node_driver src/urg_node_driver.cpp)
+add_dependencies(urg_node_driver ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
 target_link_libraries(urg_node_driver urg_c_wrapper ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(urg_node src/urg_node.cpp)
-add_dependencies(urg_node ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
 target_link_libraries(urg_node urg_node_driver ${catkin_LIBRARIES})
 
 ## Declare getID tool

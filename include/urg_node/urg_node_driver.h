@@ -32,8 +32,8 @@
  * Author: Mike O'Driscoll
  */
 
-#ifndef URG_NODE_URG_NODE_H
-#define URG_NODE_URG_NODE_H
+#ifndef URG_NODE_URG_NODE_DRIVER_H
+#define URG_NODE_URG_NODE_DRIVER_H
 
 #include <string>
 #include <ros/ros.h>
@@ -133,4 +133,4 @@ private:
 
 }  // namespace urg_node
 
-#endif  // URG_NODE_URG_NODE_H
+#endif  // URG_NODE_URG_NODE_DRIVER_H
