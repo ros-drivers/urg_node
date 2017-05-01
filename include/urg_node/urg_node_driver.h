@@ -52,6 +52,7 @@ class UrgNode
 {
 public:
   UrgNode();
+  UrgNode(ros::NodeHandle nh, ros::NodeHandle private_nh);
   ~UrgNode();
 
   /**
@@ -67,6 +68,7 @@ public:
   bool updateStatus();
 
 private:
+  void initSetup();
   bool connect();
   bool reconfigure_callback(urg_node::URGConfig& config, int level);
   void update_reconfigure_limits();

@@ -10,7 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
 generate_dynamic_reconfigure_options(cfg/URG.cfg)
 
 add_message_files(FILES
-  LidarStatus.msg
+  Status.msg
 )
 
 generate_messages(
@@ -19,7 +19,7 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES urg_c_wrapper
+  LIBRARIES urg_c_wrapper urg_node_driver
   CATKIN_DEPENDS dynamic_reconfigure laser_proc message_runtime nodelet rosconsole roscpp sensor_msgs urg_c
   DEPENDS
 )
@@ -31,20 +31,29 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 add_library(urg_c_wrapper src/urg_c_wrapper.cpp)
 target_link_libraries(urg_c_wrapper ${catkin_LIBRARIES})
 
+# Declare the cpp as a lib also
+add_library(urg_node_driver src/urg_node_driver.cpp)
+target_link_libraries(urg_node_driver urg_c_wrapper ${catkin_LIBRARIES})
+
 ## Declare a cpp executable
 add_executable(urg_node src/urg_node.cpp)
 add_dependencies(urg_node ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
-target_link_libraries(urg_node urg_c_wrapper ${catkin_LIBRARIES})
+target_link_libraries(urg_node urg_node_driver ${catkin_LIBRARIES})
 
 ## Declare getID tool
 add_executable(getID src/getID.cpp)
 target_link_libraries(getID urg_c_wrapper ${catkin_LIBRARIES})
 
 ## Mark executables and/or libraries for installation
-install(TARGETS urg_c_wrapper urg_node getID
+install(TARGETS urg_c_wrapper urg_node urg_node_driver getID
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 
 ## Mark cpp header files for installation

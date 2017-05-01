@@ -17,7 +17,6 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>diagnostic_msgs</depend>
   <depend>diagnostic_updater</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>laser_proc</depend>
