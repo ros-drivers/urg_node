@@ -95,7 +95,6 @@ void UrgNode::initSetup()
 
   diagnostic_updater_.reset(new diagnostic_updater::Updater);
   diagnostic_updater_->add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
-
 }
 
 UrgNode::~UrgNode()
