@@ -126,15 +126,25 @@ bool UrgNode::updateStatus()
     if (urg_->getAR00Status(status))
     {
       urg_node::Status msg;
-      msg.status = status.status;
       msg.operating_mode = status.operating_mode;
-      msg.area_number = status.area_number;
       msg.error_status = status.error_status;
       msg.error_code = status.error_code;
       msg.lockout_status = status.lockout_status;
 
       lockout_status_ = status.lockout_status;
       error_code_ = status.error_code;
+
+      UrgDetectionReport report;
+      if (urg_->getDL00Status(report))
+      {
+        msg.area_number = report.area;
+        msg.distance = report.distance;
+        msg.angle = report.angle;
+      }
+      else
+      {
+         ROS_WARN("Failed to get detection report.");
+      }
 
       // Publish the status on the latched topic for inspection.
       status_pub_.publish(msg);
@@ -145,7 +155,6 @@ bool UrgNode::updateStatus()
       ROS_WARN("Failed to retrieve status");
 
       urg_node::Status msg;
-      msg.status = status.status;
       status_pub_.publish(msg);
     }
   }
@@ -156,7 +165,7 @@ bool UrgNode::statusCallback(std_srvs::Trigger::Request &req, std_srvs::Trigger:
 {
   ROS_INFO("Got update lidar status callback");
   res.success = false;
-  res.message = "Lidar not ready";
+  res.message = "Laser not ready";
 
   if (updateStatus())
   {

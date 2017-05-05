@@ -406,6 +406,120 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   return true;
 }
 
+bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
+{
+  // Construct and write DL00 command.
+  std::string str_cmd;
+  str_cmd += 0x02;  // STX
+  str_cmd.append("000EDL005BCB");  // DL00 cmd with length and checksum.
+  str_cmd += 0x03;  // ETX
+
+  // Get the response
+  std::string response = sendCommand(str_cmd);
+
+  ROS_DEBUG_STREAM("Full response: " << response);
+
+  // Strip STX and ETX before calculating the CRC.
+  response.erase(0, 1);
+  response.erase(response.size() - 1, 1);
+
+  // Get the CRC, it's the last 4 chars.
+  std::stringstream ss;
+  ss << response.substr(response.size() - 4, 4);
+  uint16_t crc;
+  ss >> std::hex >> crc;
+
+  // Remove the CRC from the check.
+  std::string msg = response.substr(0, response.size() - 4);
+  // Check the checksum.
+  uint16_t checksum_result = checkCRC(msg.data(), msg.size());
+
+  if (checksum_result != crc)
+  {
+    ROS_WARN("Received bad frame, incorrect checksum");
+    return false;
+  }
+
+  // Decode the result if crc checks out.
+  // Grab the status
+  uint16_t status = 0;
+  ss.clear();
+  ROS_DEBUG_STREAM("Status " << response.substr(8, 2));
+  ss << response.substr(8, 2);  // Status is 8th position 2 chars.
+  ss >> std::hex >> status;
+
+  if (status != 0)
+  {
+    ROS_WARN("Received bad status");
+    return false;
+  }
+
+  std::vector<UrgDetectionReport> reports;
+  msg = msg.substr(10);  // remove the header.
+  // Process the message, there are 29 reports.
+  // The 30th report is a circular buff marker of area with 0xFF
+  // denoting the "last" report being the previous one.
+  for (int i = 0; i < 30; i++)
+  {
+    uint16_t area = 0;
+    uint16_t distance = 0;
+    uint16_t step = 0;
+    ss.clear();
+
+    // Each msg is 64 chars long, offset which
+    // report is being read in.
+    uint16_t offset_pos = i * 64;
+    ss << msg.substr(offset_pos, 2);  // Area is 2 chars long
+    ss >> std::hex >> area;
+
+
+    ss.clear();
+    ss << msg.substr(offset_pos + 4, 4);  // Distance is offset 4 from beginning, 4 chars long.
+    ss >> std::hex >> distance;
+
+    ss.clear();
+    ss << msg.substr(offset_pos + 8, 4);  // "Step" is offset 8 from beginning 4 chars long.
+    ss >> std::hex >> step;
+    ROS_DEBUG_STREAM(i << " Area: " << area << " Distance: " << distance << " Step: " << step);
+
+    UrgDetectionReport r;
+    r.area = area;
+    r.distance = distance;
+    // From read value to angle of report is a value/8.
+    r.angle = static_cast<float>(step) / 8.0;
+
+    reports.push_back(r);
+  }
+
+  for (auto iter = reports.begin(); iter != reports.end(); ++iter)
+  {
+    // Check if value retrieved for area is FF.
+    // if it is this is the last element lasers circular buffer.
+    if (iter->area == 0xFF)
+    {
+      // Try and read the previous item.
+      // if it's the beginning, then all reports
+      // are empty.
+      if (iter - 1 == reports.begin())
+      {
+        ROS_WARN("All reports are empty, no detections available.");
+        report.status = status;
+        return false;
+      }
+      if (iter - 1 != reports.begin())
+      {
+        report = *(iter-1);
+        report.area += 1;  // Final area is offset by 1.
+        report.status = status;
+        break;
+      }
+    }
+  }
+
+  return true;
+}
+
+
 uint16_t URGCWrapper::checkCRC(const char* bytes, const uint32_t size)
 {
   boost::crc_optimal<16, 0x1021, 0, 0, true, true>  crc_kermit_type;
