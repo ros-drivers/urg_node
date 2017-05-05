@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   diagnostic_updater dynamic_reconfigure laser_proc message_generation
   nodelet rosconsole roscpp sensor_msgs std_msgs std_srvs tf urg_c
 )
+set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++11")
 
 # Dynamic reconfigure support
 generate_dynamic_reconfigure_options(cfg/URG.cfg)

@@ -69,6 +69,23 @@ public:
   bool lockout_status;
 };
 
+class UrgDetectionReport
+{
+public:
+  UrgDetectionReport()
+  {
+    status = 0;
+    area = 0;
+    distance = 0;
+    angle = 0;
+  }
+
+  uint16_t status;
+  uint16_t area;
+  uint16_t distance;
+  float angle;
+};
+
 class URGCWrapper
 {
 public:
@@ -145,6 +162,8 @@ public:
   bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
 
   bool getAR00Status(URGStatus& status);
+
+  bool getDL00Status(UrgDetectionReport& report);
 
 private:
   void initialize(bool& using_intensity, bool& using_multiecho);
