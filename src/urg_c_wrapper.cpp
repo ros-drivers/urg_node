@@ -113,6 +113,11 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
   {
     urg_data_size = 5000;
   }
+  if(urg_data_size < 0){
+    std::stringstream ss;
+    ss << "urg_data_size is uncorrect: " << urg_data_size << "\n";
+    throw std::runtime_error(ss.str());
+  }
   data_.resize(urg_data_size * URG_MAX_ECHO);
   intensity_.resize(urg_data_size * URG_MAX_ECHO);
 
