@@ -121,6 +121,7 @@ private:
   int error_limit_;
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
+  bool detailed_status_;
 
   volatile bool service_yield_;
 

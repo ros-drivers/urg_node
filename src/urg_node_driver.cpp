@@ -79,6 +79,7 @@ void UrgNode::initSetup()
   pnh_.param<int>("error_limit", error_limit_, 4);
   pnh_.param<double>("diagnostics_tolerance", diagnostics_tolerance_, 0.05);
   pnh_.param<double>("diagnostics_window_time", diagnostics_window_time_, 5.0);
+  pnh_.param<bool>("get_detailed_status", detailed_status_, false);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_)
@@ -122,40 +123,43 @@ bool UrgNode::updateStatus()
   {
     device_status_ = urg_->getSensorStatus();
 
-    URGStatus status;
-    if (urg_->getAR00Status(status))
+    if (detailed_status_)
     {
-      urg_node::Status msg;
-      msg.operating_mode = status.operating_mode;
-      msg.error_status = status.error_status;
-      msg.error_code = status.error_code;
-      msg.lockout_status = status.lockout_status;
-
-      lockout_status_ = status.lockout_status;
-      error_code_ = status.error_code;
-
-      UrgDetectionReport report;
-      if (urg_->getDL00Status(report))
+      URGStatus status;
+      if (urg_->getAR00Status(status))
       {
-        msg.area_number = report.area;
-        msg.distance = report.distance;
-        msg.angle = report.angle;
+        urg_node::Status msg;
+        msg.operating_mode = status.operating_mode;
+        msg.error_status = status.error_status;
+        msg.error_code = status.error_code;
+        msg.lockout_status = status.lockout_status;
+
+        lockout_status_ = status.lockout_status;
+        error_code_ = status.error_code;
+
+        UrgDetectionReport report;
+        if (urg_->getDL00Status(report))
+        {
+          msg.area_number = report.area;
+          msg.distance = report.distance;
+          msg.angle = report.angle;
+        }
+        else
+        {
+           ROS_WARN("Failed to get detection report.");
+        }
+
+        // Publish the status on the latched topic for inspection.
+        status_pub_.publish(msg);
+        result = true;
       }
       else
       {
-         ROS_WARN("Failed to get detection report.");
+        ROS_WARN("Failed to retrieve status");
+
+        urg_node::Status msg;
+        status_pub_.publish(msg);
       }
-
-      // Publish the status on the latched topic for inspection.
-      status_pub_.publish(msg);
-      result = true;
-    }
-    else
-    {
-      ROS_WARN("Failed to retrieve status");
-
-      urg_node::Status msg;
-      status_pub_.publish(msg);
     }
   }
   return result;
