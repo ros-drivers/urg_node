@@ -39,8 +39,10 @@
 #include <vector>
 #include <string>
 
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/MultiEchoLaserScan.h>
+#include <ros2_time/time.hpp>
+
+#include <sensor_msgs/msg/laser_scan.hpp>
+#include <sensor_msgs/msg/multi_echo_laser_scan.hpp>
 
 #include <urg_c/urg_sensor.h>
 #include <urg_c/urg_utils.h>
@@ -139,9 +141,9 @@ public:
 
   std::string getDeviceID();
 
-  ros::Duration getComputedLatency() const;
+  ros2_time::Duration getComputedLatency() const;
 
-  ros::Duration getUserTimeOffset() const;
+  ros2_time::Duration getUserTimeOffset() const;
 
   std::string getSensorStatus();
 
@@ -155,11 +157,11 @@ public:
 
   bool setSkip(int skip);
 
-  ros::Duration computeLatency(size_t num_measurements);
+  ros2_time::Duration computeLatency(size_t num_measurements);
 
-  bool grabScan(const sensor_msgs::LaserScanPtr& msg);
+  bool grabScan(const sensor_msgs::msg::LaserScan::SharedPtr msg);
 
-  bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
+  bool grabScan(const sensor_msgs::msg::MultiEchoLaserScan::SharedPtr msg);
 
   bool getAR00Status(URGStatus& status);
 
@@ -172,11 +174,11 @@ private:
 
   bool isMultiEchoSupported();
 
-  ros::Duration getAngularTimeOffset() const;
+  ros2_time::Duration getAngularTimeOffset() const;
 
-  ros::Duration getNativeClockOffset(size_t num_measurements);
+  ros2_time::Duration getNativeClockOffset(size_t num_measurements);
 
-  ros::Duration getTimeStampOffset(size_t num_measurements);
+  ros2_time::Duration getTimeStampOffset(size_t num_measurements);
 
   /**
    * @brief calculate the crc of a given set of bytes.
@@ -210,8 +212,8 @@ private:
   int cluster_;
   int skip_;
 
-  ros::Duration system_latency_;
-  ros::Duration user_latency_;
+  ros2_time::Duration system_latency_;
+  ros2_time::Duration user_latency_;
 
   std::string ip_address_;
   int ip_port_;

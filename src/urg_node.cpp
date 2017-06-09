@@ -36,12 +36,13 @@
 int main(int argc, char **argv)
 {
   // Initialize node and nodehandles
-  ros::init(argc, argv, "urg_node");
+  rclcpp::init(argc, argv);
+  rclcpp::node::Node::SharedPtr node = rclcpp::node::Node::make_shared("urg_node");
 
-  urg_node::UrgNode node;
-  node.run();
+  urg_node::UrgNode urgNode;
+  urgNode.run();
 
-  ros::spin();
+  rclcpp::spin(node);
 
   return 0;
 }
