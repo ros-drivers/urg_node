@@ -36,14 +36,15 @@
 #define URG_NODE_URG_NODE_DRIVER_H
 
 #include <string>
-#include <ros/ros.h>
-#include <dynamic_reconfigure/server.h>
+#include <rclcpp/rclcpp.hpp>
+//#include <dynamic_reconfigure/server.h>
 #include <laser_proc/LaserTransport.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
-#include <urg_node/URGConfig.h>
-#include <std_srvs/Trigger.h>
+//#include <urg_node/URGConfig.h>
+#include <std_srvs/srv/trigger.hpp>
 
+#include "urg_node_msgs/msg/status.hpp"
 #include "urg_node/urg_c_wrapper.h"
 
 namespace urg_node
@@ -52,7 +53,7 @@ class UrgNode
 {
 public:
   UrgNode();
-  UrgNode(ros::NodeHandle nh, ros::NodeHandle private_nh);
+  UrgNode(rclcpp::node::Node::SharedPtr nh, rclcpp::node::Node::SharedPtr private_nh);
   ~UrgNode();
 
   /**
@@ -70,23 +71,26 @@ public:
 private:
   void initSetup();
   bool connect();
-  bool reconfigure_callback(urg_node::URGConfig& config, int level);
-  void update_reconfigure_limits();
+  //bool reconfigure_callback(urg_node::URGConfig& config, int level);
+  //void update_reconfigure_limits();
   void calibrate_time_offset();
   void updateDiagnostics();
   void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat);
   void scanThread();
 
-  bool statusCallback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
+  void statusCallback(
+      const std::shared_ptr<rmw_request_id_t> requestHeader,
+      const std_srvs::srv::Trigger::Request::SharedPtr req,
+      const std_srvs::srv::Trigger::Response::SharedPtr res);
 
-  ros::NodeHandle nh_;
-  ros::NodeHandle pnh_;
+  rclcpp::node::Node::SharedPtr nh_;
+  rclcpp::node::Node::SharedPtr pnh_;
 
   boost::thread diagnostics_thread_;
   boost::thread scan_thread_;
 
   boost::shared_ptr<urg_node::URGCWrapper> urg_;
-  boost::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
+  //boost::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
   boost::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
   boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
   boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
@@ -126,11 +130,11 @@ private:
 
   volatile bool service_yield_;
 
-  ros::Publisher laser_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
   laser_proc::LaserPublisher echoes_pub_;
-  ros::Publisher status_pub_;
+  rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
 
-  ros::ServiceServer status_service_;
+  rclcpp::service::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
 };
 
 }  // namespace urg_node

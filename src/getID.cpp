@@ -39,6 +39,12 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+// TODO: the ifdef unix check below is failing on Ubuntu 16.04 for
+//       some reason. Needs to be resolved
+#include <unistd.h>
+#include <assert.h>
+
 /* gcc defined unix */
 #ifdef unix
 #include <unistd.h>
@@ -73,8 +79,6 @@ std::vector<std::string> split(const std::string &s, char delim)
 int
 main(int argc, char** argv)
 {
-  ros::Time::init();
-
   if (argc < 2 || argc > 3)
   {
     fprintf(stderr,
@@ -131,7 +135,7 @@ main(int argc, char** argv)
     }
   }
 
-  boost::shared_ptr<urg_node::URGCWrapper> urg_;
+  std::shared_ptr<urg_node::URGCWrapper> urg_;
 
   for (int retries = 10; retries; retries--)
   {
@@ -170,7 +174,7 @@ main(int argc, char** argv)
     {
       printf("getID failed: %s\n", e.what());
     }
-    ros::Duration(1.0).sleep();
+    ros2_time::Duration(1.0).sleep();
   }
 
   if (verbose)
