@@ -306,8 +306,7 @@ bool URGCWrapper::grabScan(const sensor_msgs::msg::MultiEchoLaserScan::SharedPtr
   ros2_time::Time timeStamp;
   timeStamp.fromNSec((uint64_t)system_time_stamp);
   timeStamp = timeStamp + system_latency_ + user_latency_ + getAngularTimeOffset();
-  msg->header.stamp.sec = timeStamp.toSec();
-  msg->header.stamp.nanosec = timeStamp.toNSec();
+  msg->header.stamp = timeStamp.toStamp();
 
   msg->ranges.reserve(num_beams);
   if (use_intensity_)
