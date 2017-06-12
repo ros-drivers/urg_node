@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(urg_node)
 
-#find_package(catkin REQUIRED COMPONENTS
-#  diagnostic_updater dynamic_reconfigure laser_proc message_generation
-#  nodelet rosconsole roscpp sensor_msgs std_msgs std_srvs tf urg_c
-#)
 find_package(ament_cmake REQUIRED)
 find_package(urg_node_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
@@ -22,14 +18,6 @@ find_package(ros2_time REQUIRED)
 find_package(Boost REQUIRED thread)
 
 set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++11")
-
-# catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES urg_c_wrapper urg_node_driver
-#  CATKIN_DEPENDS dynamic_reconfigure laser_proc message_runtime nodelet rosconsole
-#  roscpp sensor_msgs std_msgs std_srvs urg_c
-#  DEPENDS
-#)
 
 set(INCLUDE_DIRS
   include
@@ -106,13 +94,15 @@ install(PROGRAMS
    DESTINATION bin
 )
 
-if(CATKIN_ENABLE_TESTING)
-  find_package(roslint)
+if(BUILD_TESTING)
+  #find_package(ament_lint_auto REQUIRED)
+
   # Ignore long -> int32_t warning, urg_c driver uses
   # long, etc. Wrapper must also use these
-  set(ROSLINT_CPP_OPTS "--filter=-runtime/references,-runtime/int")
-  roslint_cpp()
-  roslint_add_test()
+  #set(ROSLINT_CPP_OPTS "--filter=-runtime/references,-runtime/int")
+  #ament_lint_auto_find_test_dependencies()
+  #roslint_cpp()
+  #roslint_add_test()
 endif()
 
 ament_export_dependencies(urg_node_msgs)
@@ -129,6 +119,6 @@ ament_export_dependencies(builtin_interfaces)
 ament_export_dependencies(rosidl_default_generators)
 ament_export_dependencies(ros2_time)
 ament_export_include_directories(${INCLUDE_DIRS})
-ament_export_libraries(urg_c_wrapper urg_node_driver)
+ament_export_libraries(urg_c_wrapper urg_node_driver ${LIBS})
 
 ament_package()
