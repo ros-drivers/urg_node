@@ -33,6 +33,7 @@
   <exec_depend>message_runtime</exec_depend>
 
   <test_depend>roslint</test_depend>
+  <test_depend>roslaunch</test_depend>
 
   <export>
   </export>

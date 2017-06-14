@@ -78,4 +78,7 @@ if(CATKIN_ENABLE_TESTING)
   set(ROSLINT_CPP_OPTS "--filter=-runtime/references,-runtime/int")
   roslint_cpp()
   roslint_add_test()
+
+  find_package(roslaunch REQUIRED)
+  roslaunch_add_file_check(launch/urg_lidar.launch)
 endif()
