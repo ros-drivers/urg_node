@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(urg_node)
 
 find_package(ament_cmake REQUIRED)
@@ -58,7 +58,6 @@ target_link_libraries(urg_c_wrapper ${LIBS})
 
 # Declare the cpp as a lib also
 add_library(urg_node_driver src/urg_node_driver.cpp)
-add_dependencies(urg_node_driver ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
 target_link_libraries(urg_node_driver urg_c_wrapper ${LIBS})
 
 ## Declare a cpp executable
