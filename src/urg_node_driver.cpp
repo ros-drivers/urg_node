@@ -52,9 +52,19 @@ UrgNode::UrgNode(rclcpp::node::Node::SharedPtr nh, rclcpp::node::Node::SharedPtr
 
 UrgNode::UrgNode():
   nh_(rclcpp::node::Node::make_shared("urg_node")),
-  pnh_(rclcpp::node::Node::make_shared("~"))
+  pnh_(rclcpp::node::Node::make_shared("urg_node"))
 {
   initSetup();
+}
+
+void UrgNode::setSerialPort(const std::string& port)
+{
+  serial_port_ = port;
+}
+
+void UrgNode::setUserLatency(const double& latency)
+{
+  default_user_latency_ = latency;
 }
 
 void UrgNode::initSetup()
@@ -68,6 +78,7 @@ void UrgNode::initSetup()
   // Initialize node and nodehandles
 
   // Get parameters so we can change these later.
+#if 0 // TODO: nodes don't automatically have a parameter service yet...disable for now
   rclcpp::parameter_client::SyncParametersClient client(pnh_);
   ip_address_ = client.get_parameter<std::string>("ip_address", "");
   ip_port_ = client.get_parameter<int>("ip_port", 10940);
@@ -80,6 +91,20 @@ void UrgNode::initSetup()
   diagnostics_tolerance_ = client.get_parameter<double>("diagnostics_tolerance", 0.05);
   diagnostics_window_time_ = client.get_parameter<double>("diagnostics_window_time", 5.0);
   detailed_status_ = client.get_parameter<bool>("get_detailed_status", false);
+#else
+  ip_address_ = "";
+  ip_port_ = 10940;
+  serial_port_ = "/dev/ttyACM0";
+  serial_baud_ = 115200;
+  calibrate_time_ = false;
+  publish_intensity_ = false;
+  publish_multiecho_ = false;
+  error_limit_ = 4;
+  diagnostics_tolerance_ = 0.05;
+  diagnostics_window_time_ = 5.0;
+  detailed_status_ = false;
+  default_user_latency_ = 0;
+#endif
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_)
@@ -92,6 +117,7 @@ void UrgNode::initSetup()
   }
 
   status_service_ = nh_->create_service<std_srvs::srv::Trigger>("update_laser_status", std::bind(&UrgNode::statusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
   // TODO: ros2 does not have latched topics
   status_pub_ = nh_->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);  // latched=true
 
@@ -420,6 +446,23 @@ bool UrgNode::connect()
     {
       diagnostic_updater_->setHardwareID(urg_->getDeviceID());
     }
+
+    // Configure initial properties (in place of initial dynamic reconfigure)
+
+    // The publish frequency changes based on the number of skipped scans.
+    // Update accordingly here.
+    int skip = 0;
+    freq_min_ = 1.0 / (urg_->getScanPeriod() * (skip + 1));
+
+    double angleMin = -2.0943951023931953;  // -120 degrees
+    double angleMax = 2.0943951023931953;  // +120 degrees
+    int cluster = 1;
+    urg_->setAngleLimitsAndCluster(angleMin, angleMax, cluster);
+    urg_->setSkip(skip);
+
+    std::string frame_id = "laser";
+    urg_->setFrameId(frame_id);
+    urg_->setUserLatency(default_user_latency_);
 
     return true;
   }

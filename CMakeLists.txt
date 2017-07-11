@@ -93,6 +93,9 @@ install(PROGRAMS
    DESTINATION bin
 )
 
+# Install launch files
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   #find_package(ament_lint_auto REQUIRED)
 
@@ -106,7 +109,7 @@ endif()
 
 ament_export_dependencies(urg_node_msgs)
 ament_export_dependencies(diagnostic_updater)
-ament_export_dependencies(dynamic_reconfigure)
+#ament_export_dependencies(dynamic_reconfigure)
 ament_export_dependencies(laser_proc)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(sensor_msgs)

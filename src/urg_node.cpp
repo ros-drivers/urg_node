@@ -33,13 +33,41 @@
 
 #include "urg_node/urg_node_driver.h"
 
+// boost headers
+#include <boost/lexical_cast.hpp>
+
+// rcutils headers
+#include <rcutils/cmdline_parser.h>
+
+
 int main(int argc, char **argv)
 {
   // Initialize node and nodehandles
   rclcpp::init(argc, argv);
   rclcpp::node::Node::SharedPtr node = rclcpp::node::Node::make_shared("urg_node");
 
+  // Support the optional serial port command line argument
+  std::string serialPort = "/dev/ttyACM0";
+  std::string option = "--serial-port";
+  if (cli_option_exist(argv, argv + argc, option.c_str())) {
+    serialPort = cli_get_option(argv, argv + argc, option.c_str());
+  }
+
+  // Support the optional user latency command line argument
+  double userLatency = 0;
+  option = "--user-latency";
+  if (cli_option_exist(argv, argv + argc, option.c_str())) {
+    std::string strLatency = cli_get_option(argv, argv + argc, option.c_str());
+    userLatency = boost::lexical_cast<double>(strLatency);
+  }
+
   urg_node::UrgNode urgNode;
+
+  // Update settings
+  urgNode.setSerialPort(serialPort);
+  urgNode.setUserLatency(userLatency);
+
+  // Run the urg node
   urgNode.run();
 
   rclcpp::spin(node);
