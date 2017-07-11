@@ -57,6 +57,20 @@ public:
   ~UrgNode();
 
   /**
+   * @brief Set the serial port used by the lidar
+   * Set the serial port used by the lidar
+   * @param port is the new serial port
+   */
+  void setSerialPort(const std::string& port);
+
+  /**
+   * @brief Set the user latency
+   * Set the amount of user latency (in seconds)
+   * @param latency is the user latency in seconds
+   */
+  void setUserLatency(const double& latency);
+
+  /**
    * @brief Start's the nodes threads to run the lidar.
    */
   void run();
@@ -127,6 +141,9 @@ private:
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
   bool detailed_status_;
+
+  /** The default user latency value. */
+  double default_user_latency_;
 
   volatile bool service_yield_;
 
