@@ -15,7 +15,7 @@
   <author email="chadrockey@gmail.com">Chad Rockey</author>
   <author email="modriscoll@clearpath.ai">Mike O'Driscoll</author>
 
-  <buildtool_depend>ament</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>urg_node_msgs</depend>
   <depend>diagnostic_updater</depend>
