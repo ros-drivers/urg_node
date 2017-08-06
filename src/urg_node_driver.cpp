@@ -67,6 +67,11 @@ void UrgNode::setUserLatency(const double& latency)
   default_user_latency_ = latency;
 }
 
+void UrgNode::setLaserFrameId(const std::string& laserFrameId)
+{
+  laser_frame_id_ = laserFrameId;
+}
+
 void UrgNode::initSetup()
 {
   close_diagnostics_ = true;
@@ -447,7 +452,7 @@ bool UrgNode::connect()
     urg_->setAngleLimitsAndCluster(angleMin, angleMax, cluster);
     urg_->setSkip(skip);
 
-    std::string frame_id = "laser";
+    std::string frame_id = laser_frame_id_;
     urg_->setFrameId(frame_id);
     urg_->setUserLatency(default_user_latency_);
 

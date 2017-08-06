@@ -71,6 +71,13 @@ public:
   void setUserLatency(const double& latency);
 
   /**
+   * @brief Set the laser frame id
+   * Set the laser tf frame id.
+   * @param laserFrameId is the laser tf frame id
+   */
+  void setLaserFrameId(const std::string& laserFrameId);
+
+  /**
    * @brief Start's the nodes threads to run the lidar.
    */
   void run();
@@ -144,6 +151,9 @@ private:
 
   /** The default user latency value. */
   double default_user_latency_;
+
+  /** The laser tf frame id. */
+  std::string laser_frame_id_;
 
   volatile bool service_yield_;
 

@@ -61,6 +61,13 @@ int main(int argc, char **argv)
     userLatency = boost::lexical_cast<double>(strLatency);
   }
 
+  // Support the optional laser frame id command line argument
+  std::string laserFrameId = "laser";
+  option = "--laser-frame-id";
+  if (cli_option_exist(argv, argv + argc, option.c_str())) {
+    laserFrameId = cli_get_option(argv, argv + argc, option.c_str());
+  }
+
   urg_node::UrgNode urgNode;
 
   // Update settings
