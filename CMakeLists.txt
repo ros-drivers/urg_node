@@ -72,7 +72,7 @@ target_link_libraries(getID urg_c_wrapper ${LIBS})
 install(TARGETS urg_c_wrapper urg_node urg_node_driver getID
    ARCHIVE DESTINATION lib
    LIBRARY DESTINATION lib
-   RUNTIME DESTINATION bin
+   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
