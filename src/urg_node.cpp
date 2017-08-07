@@ -49,23 +49,23 @@ int main(int argc, char **argv)
   // Support the optional serial port command line argument
   std::string serialPort = "/dev/ttyACM0";
   std::string option = "--serial-port";
-  if (cli_option_exist(argv, argv + argc, option.c_str())) {
-    serialPort = cli_get_option(argv, argv + argc, option.c_str());
+  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
+    serialPort = rcutils_cli_get_option(argv, argv + argc, option.c_str());
   }
 
   // Support the optional user latency command line argument
   double userLatency = 0;
   option = "--user-latency";
-  if (cli_option_exist(argv, argv + argc, option.c_str())) {
-    std::string strLatency = cli_get_option(argv, argv + argc, option.c_str());
+  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
+    std::string strLatency = rcutils_cli_get_option(argv, argv + argc, option.c_str());
     userLatency = boost::lexical_cast<double>(strLatency);
   }
 
   // Support the optional laser frame id command line argument
   std::string laserFrameId = "laser";
   option = "--laser-frame-id";
-  if (cli_option_exist(argv, argv + argc, option.c_str())) {
-    laserFrameId = cli_get_option(argv, argv + argc, option.c_str());
+  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
+    laserFrameId = rcutils_cli_get_option(argv, argv + argc, option.c_str());
   }
 
   urg_node::UrgNode urgNode;
