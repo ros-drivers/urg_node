@@ -107,16 +107,16 @@ private:
   rclcpp::node::Node::SharedPtr nh_;
   rclcpp::node::Node::SharedPtr pnh_;
 
-  boost::thread diagnostics_thread_;
-  boost::thread scan_thread_;
+  std::thread diagnostics_thread_;
+  std::thread scan_thread_;
 
-  boost::shared_ptr<urg_node::URGCWrapper> urg_;
-  //boost::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
-  boost::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
-  boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
-  boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
+  std::shared_ptr<urg_node::URGCWrapper> urg_;
+  //std::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
+  std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+  std::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
+  std::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
 
-  boost::mutex lidar_mutex_;
+  std::mutex lidar_mutex_;
 
   /* Non-const device properties.  If you poll the driver for these
   * while scanning is running, then the scan will probably fail.
