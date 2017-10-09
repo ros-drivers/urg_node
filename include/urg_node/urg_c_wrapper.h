@@ -179,6 +179,12 @@ private:
   ros::Duration getTimeStampOffset(size_t num_measurements);
 
   /**
+   * @brief Set the Hokuyo URG-04LX from SCIP 1.1 mode to SCIP 2.0 mode.
+   * @returns True if successful and false if not.
+   */
+  bool setToSCIP2();
+
+  /**
    * @brief calculate the crc of a given set of bytes.
    * @param bytes The bytes array to be processed.
    * @param size The size of the bytes array.

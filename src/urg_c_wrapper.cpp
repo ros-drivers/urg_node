@@ -99,13 +99,22 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
   // urg_max_data_size can return a negative, error code value. Resizing based on this value will fail.
   if (urg_data_size < 0)
   {
-    urg_.last_errno = urg_data_size;
-    std::stringstream ss;
-    ss << "Could not initialize Hokuyo:\n";
-    ss << urg_error(&urg_);
-    stop();
-    urg_close(&urg_);
-    throw std::runtime_error(ss.str());
+    // This error can be caused by a URG-04LX in SCIP 1.1 mode, so we try to set SCIP 2.0 mode.
+    if (setToSCIP2() && urg_max_data_size(&urg_) >= 0)
+    {
+      // If setting SCIP 2.0 was successful, we set urg_data_size to the correct value.
+      urg_data_size = urg_max_data_size(&urg_);
+    }
+    else
+    {
+      urg_.last_errno = urg_data_size;
+      std::stringstream ss;
+      ss << "Could not initialize Hokuyo:\n";
+      ss << urg_error(&urg_);
+      stop();
+      urg_close(&urg_);
+      throw std::runtime_error(ss.str());
+    }
   }
   // Ocassionally urg_max_data_size returns a string pointer, make sure we don't allocate too much space,
   // the current known max is 1440 steps
@@ -519,6 +528,29 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
   return true;
 }
 
+bool URGCWrapper::setToSCIP2()
+{
+  if (urg_.connection.type == URG_ETHERNET)
+    return false;
+
+  char buffer[sizeof("SCIP2.0\n")];
+  int n;
+
+  do {
+  n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
+  } while (n >= 0);
+
+  serial_write(&(urg_.connection.serial), "SCIP2.0\n", sizeof(buffer));
+  n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
+
+  // Check if switching was successful.
+  if (n > 0 && strcmp(buffer, "SCIP2.0") == 0 && urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)
+  {
+    ROS_DEBUG_STREAM("Set sensor to SCIP 2.0.");
+    return true;
+  }
+  return false;
+}
 
 uint16_t URGCWrapper::checkCRC(const char* bytes, const uint32_t size)
 {
