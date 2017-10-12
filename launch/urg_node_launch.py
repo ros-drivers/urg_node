@@ -11,6 +11,9 @@
 #    <param name="angle_max" value="1.5707963"/>
 #  </node>
 #</launch>
+
+from ros2_launch_util import add_node
+
 def launch(descriptor, argv):
     args = []
 
@@ -24,5 +27,4 @@ def launch(descriptor, argv):
     if name in argv:
         args.extend(["--user-latency", argv[name]])
 
-    descriptor.add_process(["urg_node"] + args)
-
+    add_node(descriptor, "urg_node", "urg_node", args=args)

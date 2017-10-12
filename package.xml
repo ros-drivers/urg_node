@@ -30,7 +30,7 @@
   <depend>tf2</depend>
   <depend>urg_c</depend>
   <depend>ros2_time</depend>
-
+  <depend>ros2_launch_util</depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
