@@ -536,15 +536,18 @@ bool URGCWrapper::setToSCIP2()
   char buffer[sizeof("SCIP2.0\n")];
   int n;
 
-  do {
-  n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
-  } while (n >= 0);
+  do
+  {
+    n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
+  }
+  while (n >= 0);
 
   serial_write(&(urg_.connection.serial), "SCIP2.0\n", sizeof(buffer));
   n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
 
   // Check if switching was successful.
-  if (n > 0 && strcmp(buffer, "SCIP2.0") == 0 && urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)
+  if (n > 0 && strcmp(buffer, "SCIP2.0") == 0
+    && urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)
   {
     ROS_DEBUG_STREAM("Set sensor to SCIP 2.0.");
     return true;
