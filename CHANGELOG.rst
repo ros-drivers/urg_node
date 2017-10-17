@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.11 (2017-10-17)
+-------------------
 * Add support for URG-04LX in SCIP 1.1 mode
   The urg_node does not support SCIP 1.1. The Hokuyo URG-04LX supports both
   SCIP 1.1 and SCIP 2.0, but needs to be switched to SCIP 2.0 at every startup
