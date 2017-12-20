@@ -43,7 +43,7 @@ namespace urg_node
 // Useful typedefs
 typedef diagnostic_updater::FrequencyStatusParam FrequencyStatusParam;
 
-UrgNode::UrgNode(rclcpp::node::Node::SharedPtr nh, rclcpp::node::Node::SharedPtr private_nh) :
+UrgNode::UrgNode(rclcpp::Node::SharedPtr nh, rclcpp::Node::SharedPtr private_nh) :
   nh_(nh),
   pnh_(private_nh)
 {
@@ -51,8 +51,8 @@ UrgNode::UrgNode(rclcpp::node::Node::SharedPtr nh, rclcpp::node::Node::SharedPtr
 }
 
 UrgNode::UrgNode():
-  nh_(rclcpp::node::Node::make_shared("urg_node")),
-  pnh_(rclcpp::node::Node::make_shared("urg_node"))
+  nh_(rclcpp::Node::make_shared("urg_node")),
+  pnh_(rclcpp::Node::make_shared("urg_node"))
 {
   initSetup();
 }
