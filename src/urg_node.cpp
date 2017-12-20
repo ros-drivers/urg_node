@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 {
   // Initialize node and nodehandles
   rclcpp::init(argc, argv);
-  rclcpp::node::Node::SharedPtr node = rclcpp::node::Node::make_shared("urg_node");
+  auto node = rclcpp::Node::make_shared("urg_node");
 
   // Support the optional serial port command line argument
   std::string serialPort = "/dev/ttyACM0";

@@ -53,7 +53,7 @@ class UrgNode
 {
 public:
   UrgNode();
-  UrgNode(rclcpp::node::Node::SharedPtr nh, rclcpp::node::Node::SharedPtr private_nh);
+  UrgNode(rclcpp::Node::SharedPtr nh, rclcpp::Node::SharedPtr private_nh);
   ~UrgNode();
 
   /**
@@ -104,8 +104,8 @@ private:
       const std_srvs::srv::Trigger::Request::SharedPtr req,
       const std_srvs::srv::Trigger::Response::SharedPtr res);
 
-  rclcpp::node::Node::SharedPtr nh_;
-  rclcpp::node::Node::SharedPtr pnh_;
+  rclcpp::Node::SharedPtr nh_;
+  rclcpp::Node::SharedPtr pnh_;
 
   std::thread diagnostics_thread_;
   std::thread scan_thread_;
@@ -161,7 +161,7 @@ private:
   laser_proc::LaserPublisher echoes_pub_;
   rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
 
-  rclcpp::service::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
 };
 
 }  // namespace urg_node
