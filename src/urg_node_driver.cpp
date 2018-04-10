@@ -74,6 +74,7 @@ void UrgNode::initSetup()
   pnh_.param<std::string>("serial_port", serial_port_, "/dev/ttyACM0");
   pnh_.param<int>("serial_baud", serial_baud_, 115200);
   pnh_.param<bool>("calibrate_time", calibrate_time_, false);
+  pnh_.param<bool>("synchronize_time", synchronize_time_, false);
   pnh_.param<bool>("publish_intensity", publish_intensity_, true);
   pnh_.param<bool>("publish_multiecho", publish_multiecho_, false);
   pnh_.param<int>("error_limit", error_limit_, 4);
@@ -366,11 +367,13 @@ bool UrgNode::connect()
     urg_.reset();  // Clear any previous connections();
     if (!ip_address_.empty())
     {
-      urg_.reset(new urg_node::URGCWrapper(ip_address_, ip_port_, publish_intensity_, publish_multiecho_));
+      urg_.reset(new urg_node::URGCWrapper(ip_address_, ip_port_,
+          publish_intensity_, publish_multiecho_, synchronize_time_));
     }
     else
     {
-      urg_.reset(new urg_node::URGCWrapper(serial_baud_, serial_port_, publish_intensity_, publish_multiecho_));
+      urg_.reset(new urg_node::URGCWrapper(serial_baud_, serial_port_,
+          publish_intensity_, publish_multiecho_, synchronize_time_));
     }
 
     std::stringstream ss;
