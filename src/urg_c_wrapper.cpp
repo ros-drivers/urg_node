@@ -41,7 +41,8 @@
 namespace urg_node
 {
 
-URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho)
+URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port,
+    bool& using_intensity, bool& using_multiecho, bool synchronize_time)
 {
   // Store for comprehensive diagnostics
   ip_address_ = ip_address;
@@ -63,11 +64,11 @@ URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool&
     throw std::runtime_error(ss.str());
   }
 
-  initialize(using_intensity, using_multiecho);
+  initialize(using_intensity, using_multiecho, synchronize_time);
 }
 
 URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
-    bool& using_intensity, bool& using_multiecho)
+    bool& using_intensity, bool& using_multiecho, bool synchronize_time)
 {
   // Store for comprehensive diagnostics
   serial_baud_ = serial_baud;
@@ -90,10 +91,10 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
     throw std::runtime_error(ss.str());
   }
 
-  initialize(using_intensity, using_multiecho);
+  initialize(using_intensity, using_multiecho, synchronize_time);
 }
 
-void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
+void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho, bool synchronize_time)
 {
   int urg_data_size = urg_max_data_size(&urg_);
   // urg_max_data_size can return a negative, error code value. Resizing based on this value will fail.
@@ -131,6 +132,12 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
   last_step_ = 0;
   cluster_ = 1;
   skip_ = 0;
+
+  synchronize_time_ = synchronize_time;
+  hardware_clock_ = 0.0;
+  last_hardware_time_stamp_ = 0;
+  hardware_clock_adj_ = 0.0;
+  adj_count_ = 0;
 
   if (using_intensity)
   {
@@ -226,7 +233,14 @@ bool URGCWrapper::grabScan(const sensor_msgs::LaserScanPtr& msg)
   }
 
   // Fill scan
-  msg->header.stamp.fromNSec((uint64_t)system_time_stamp);
+  if (synchronize_time_)
+  {
+    msg->header.stamp = getSynchronizedTime(time_stamp, system_time_stamp);
+  }
+  else
+  {
+    msg->header.stamp.fromNSec((uint64_t)system_time_stamp);
+  }
   msg->header.stamp = msg->header.stamp + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg->ranges.resize(num_beams);
   if (use_intensity_)
@@ -1033,5 +1047,38 @@ ros::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
+}
+
+ros::Time URGCWrapper::getSynchronizedTime(long time_stamp, long long system_time_stamp)
+{
+  ros::Time stamp;
+  stamp.fromNSec((uint64_t)system_time_stamp);
+
+  const uint32_t t1 = static_cast<uint32_t>(time_stamp);
+  const uint32_t t0 = static_cast<uint32_t>(last_hardware_time_stamp_);
+  // hokuyo uses a 24-bit counter, so mask out irrelevant bits
+  const uint32_t mask = 0x00ffffff;
+  double delta = static_cast<double>(mask&(t1-t0))/1000.0;
+  hardware_clock_ += delta;
+  double cur_adj = stamp.toSec() - hardware_clock_;
+  if (adj_count_ > 0)
+  {
+    hardware_clock_adj_ = adj_alpha_*cur_adj+(1.0-adj_alpha_)*hardware_clock_adj_;
+  }
+  else
+  {
+    // Initialize the EMA
+    hardware_clock_adj_ = cur_adj;
+  }
+  adj_count_++;
+  last_hardware_time_stamp_ = time_stamp;
+
+  // Once hardware clock is synchronized, use it. Otherwise just return the
+  // input system_time_stamp as ros::Time.
+  if (adj_count_ > 100)
+  {
+    stamp.fromSec(hardware_clock_+hardware_clock_adj_);
+  }
+  return stamp;
 }
 }  // namespace urg_node

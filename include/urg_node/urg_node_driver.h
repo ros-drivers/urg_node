@@ -116,6 +116,7 @@ private:
   std::string serial_port_;
   int serial_baud_;
   bool calibrate_time_;
+  bool synchronize_time_;
   bool publish_intensity_;
   bool publish_multiecho_;
   int error_limit_;

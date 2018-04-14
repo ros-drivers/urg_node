@@ -89,9 +89,11 @@ public:
 class URGCWrapper
 {
 public:
-  URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho);
+  URGCWrapper(const std::string& ip_address, const int ip_port,
+      bool& using_intensity, bool& using_multiecho, bool synchronize_time);
 
-  URGCWrapper(const int serial_baud, const std::string& serial_port, bool& using_intensity, bool& using_multiecho);
+  URGCWrapper(const int serial_baud, const std::string& serial_port,
+      bool& using_intensity, bool& using_multiecho, bool synchronize_time);
 
   ~URGCWrapper();
 
@@ -166,7 +168,7 @@ public:
   bool getDL00Status(UrgDetectionReport& report);
 
 private:
-  void initialize(bool& using_intensity, bool& using_multiecho);
+  void initialize(bool& using_intensity, bool& using_multiecho, bool synchronize_time);
 
   bool isIntensitySupported();
 
@@ -177,6 +179,14 @@ private:
   ros::Duration getNativeClockOffset(size_t num_measurements);
 
   ros::Duration getTimeStampOffset(size_t num_measurements);
+
+  /**
+   * @brief Get synchronized time stamp using hardware clock
+   * @param time_stamp The current hardware time stamp.
+   * @param system_time_stamp The current system time stamp.
+   * @returns ros::Time stamp representing synchronized time
+   */
+  ros::Time getSynchronizedTime(long time_stamp, long long system_time_stamp);
 
   /**
    * @brief Set the Hokuyo URG-04LX from SCIP 1.1 mode to SCIP 2.0 mode.
@@ -218,6 +228,14 @@ private:
 
   ros::Duration system_latency_;
   ros::Duration user_latency_;
+
+  // used for clock synchronziation
+  bool synchronize_time_;
+  double hardware_clock_;
+  long last_hardware_time_stamp_;
+  double hardware_clock_adj_;
+  const double adj_alpha_ = .01;
+  uint64_t adj_count_;
 
   std::string ip_address_;
   int ip_port_;
