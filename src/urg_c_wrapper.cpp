@@ -1051,8 +1051,9 @@ ros::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 
 ros::Time URGCWrapper::getSynchronizedTime(long time_stamp, long long system_time_stamp)
 {
-  ros::Time stamp;
-  stamp.fromNSec((uint64_t)system_time_stamp);
+  ros::Time stamp, system_time;
+  system_time.fromNSec((uint64_t)system_time_stamp);
+  stamp = system_time;
 
   const uint32_t t1 = static_cast<uint32_t>(time_stamp);
   const uint32_t t0 = static_cast<uint32_t>(last_hardware_time_stamp_);
@@ -1078,6 +1079,16 @@ ros::Time URGCWrapper::getSynchronizedTime(long time_stamp, long long system_tim
   if (adj_count_ > 100)
   {
     stamp.fromSec(hardware_clock_+hardware_clock_adj_);
+    // If the time error is large a clock warp has occurred.
+    // Reset the EMA and use the system time.
+    if (fabs((stamp-system_time).toSec()) > 0.1)
+    {
+        adj_count_ = 0;
+        hardware_clock_ = 0.0;
+        last_hardware_time_stamp_ = 0;
+        stamp = system_time;
+        ROS_INFO("%s: detected clock warp, reset EMA", __func__);
+    }
   }
   return stamp;
 }
