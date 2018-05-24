@@ -78,6 +78,20 @@ public:
   void setLaserFrameId(const std::string& laserFrameId);
 
   /**
+   * @brief Set the IP Address
+   * Set the IP address used by the lidar
+   * @param ipAddr is the IP address
+   */
+  void setIPAdddress(const std::string& ipAddr);
+
+  /**
+   * @brief Set the IP port
+   * Set the IP port used by the lidar
+   * @param ipPort is the IP port
+   */
+  void setIPPort(const int& ipPort);
+
+  /**
    * @brief Start's the nodes threads to run the lidar.
    */
   void run();

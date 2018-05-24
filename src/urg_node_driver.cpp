@@ -62,6 +62,16 @@ void UrgNode::setSerialPort(const std::string& port)
   serial_port_ = port;
 }
 
+void UrgNode::setIPAdddress(const std::string& ipAddr)
+{
+  ip_address_ = ipAddr;
+}
+
+void UrgNode::setIPPort(const int& ipPort)
+{
+  ip_port_ = ipPort;
+}
+
 void UrgNode::setUserLatency(const double& latency)
 {
   default_user_latency_ = latency;
