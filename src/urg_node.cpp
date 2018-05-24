@@ -61,6 +61,21 @@ int main(int argc, char **argv)
     userLatency = boost::lexical_cast<double>(strLatency);
   }
 
+  // Support the optional IP address command line argument
+  std::string ipAddress = "";
+  option = "--ip-addr";
+  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
+    ipAddress = rcutils_cli_get_option(argv, argv + argc, option.c_str());
+  }
+
+  // Support the optional IP port command line argument
+  int ipPort = 0;
+  option = "--port";
+  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
+    std::string strIPPort = rcutils_cli_get_option(argv, argv + argc, option.c_str());
+    ipPort = boost::lexical_cast<int>(strIPPort);
+  }
+
   // Support the optional laser frame id command line argument
   std::string laserFrameId = "laser";
   option = "--laser-frame-id";
@@ -73,6 +88,8 @@ int main(int argc, char **argv)
   // Update settings
   urgNode.setSerialPort(serialPort);
   urgNode.setUserLatency(userLatency);
+  urgNode.setIPAdddress(ipAddress);
+  urgNode.setIPPort(ipPort);
 
   // Run the urg node
   urgNode.run();
