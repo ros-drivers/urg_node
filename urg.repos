@@ -1,0 +1,25 @@
+repositories:
+  diagnostics:
+    type: git
+    url: https://github.com/bponsler/diagnostics
+    version: ros2-devel
+  laser_proc:
+    type: git
+    url: https://github.com/bponsler/laser_proc
+    version: ros2-devel
+  ros2_console:
+    type: git
+    url: https://github.com/bponsler/ros2_console
+    version: master
+  ros2_time:
+    type: git
+    url: https://github.com/bponsler/ros2_time
+    version: master
+  urg_c:
+    type: git
+    url: https://github.com/bponsler/urg_c
+    version: ros2-devel
+  urg_node_msgs:
+    type: git
+    url: https://github.com/bponsler/urg_node_msgs
+    version: master
