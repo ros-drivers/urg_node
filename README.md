@@ -11,7 +11,7 @@ Create a folder for urg and clone this repo
 ```
 mkdir -p ~/ros2_ws/src/urg
 cd ~/ros2_ws/src/urg
-git clone -b ros2-devel https://github.com/bponsler/urg_node
+git clone -b bouncy-devel https://github.com/hopetechnik/urg_node.git
 ```
 Clone dependencies
 ```
