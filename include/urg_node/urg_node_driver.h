@@ -71,6 +71,20 @@ public:
   void setUserLatency(const double& latency);
 
   /**
+   * @brief Set the minimum angle
+   * Set the minimum angle of the laser (in radians)
+   * @param angleMin is the minimum angle in radians
+   */
+  void setAngleMin(const double& anglemin);
+
+  /**
+   * @brief Set the maximum angle
+   * Set the maximum angle of the laser (in radians)
+   * @param angleMax is the maximum angle in radians
+   */
+  void setAngleMax(const double& anglemax);
+
+  /**
    * @brief Set the laser frame id
    * Set the laser tf frame id.
    * @param laserFrameId is the laser tf frame id
@@ -161,6 +175,8 @@ private:
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
   bool detailed_status_;
+  double angleMin_;
+  double angleMax_;
 
   /** The default user latency value. */
   double default_user_latency_;

@@ -82,6 +82,16 @@ void UrgNode::setLaserFrameId(const std::string& laserFrameId)
   laser_frame_id_ = laserFrameId;
 }
 
+void UrgNode::setAngleMin(const double& angleMin)
+{
+  angleMin_ = angleMin;
+}
+
+void UrgNode::setAngleMax(const double& angleMax)
+{
+  angleMax_ = angleMax;
+}
+
 void UrgNode::initSetup()
 {
   close_diagnostics_ = true;
@@ -120,6 +130,8 @@ void UrgNode::initSetup()
   diagnostics_window_time_ = 5.0;
   detailed_status_ = false;
   default_user_latency_ = 0;
+  angleMin_ = -3.14;
+  angleMax_ = 3.14;
 #endif
 
   // Set up publishers and diagnostics updaters, we only need one
@@ -470,10 +482,8 @@ bool UrgNode::connect()
     int skip = 0;
     freq_min_ = 1.0 / (urg_->getScanPeriod() * (skip + 1));
 
-    double angleMin = -2.0943951023931953;  // -120 degrees
-    double angleMax = 2.0943951023931953;  // +120 degrees
     int cluster = 1;
-    urg_->setAngleLimitsAndCluster(angleMin, angleMax, cluster);
+    urg_->setAngleLimitsAndCluster(angleMin_, angleMax_, cluster);
     urg_->setSkip(skip);
 
     std::string frame_id = laser_frame_id_;
