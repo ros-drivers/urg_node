@@ -82,6 +82,22 @@ int main(int argc, char **argv)
   if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
     laserFrameId = rcutils_cli_get_option(argv, argv + argc, option.c_str());
   }
+  
+  // Support the optional minimum angle command line argument
+  double angleMin = -3.14;
+  option = "--angle-min";
+  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
+    std::string strAngleMin = rcutils_cli_get_option(argv, argv + argc, option.c_str());
+    angleMin = boost::lexical_cast<double>(strAngleMin);
+  }
+  
+  // Support the optional minimum angle command line argument
+  double angleMax = 3.14;
+  option = "--angle-max";
+  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
+    std::string strAngleMax = rcutils_cli_get_option(argv, argv + argc, option.c_str());
+    angleMax = boost::lexical_cast<double>(strAngleMax);
+  }
 
   urg_node::UrgNode urgNode;
 
@@ -90,6 +106,9 @@ int main(int argc, char **argv)
   urgNode.setUserLatency(userLatency);
   urgNode.setIPAdddress(ipAddress);
   urgNode.setIPPort(ipPort);
+  urgNode.setLaserFrameId(laserFrameId);
+  urgNode.setAngleMin(angleMin);
+  urgNode.setAngleMax(angleMax);
 
   // Run the urg node
   urgNode.run();

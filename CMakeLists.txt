@@ -17,7 +17,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(ros2_time REQUIRED)
 find_package(Boost REQUIRED thread)
 
-set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++11")
+set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++14")
 
 set(INCLUDE_DIRS
   include
