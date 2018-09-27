@@ -57,55 +57,6 @@ public:
   ~UrgNode();
 
   /**
-   * @brief Set the serial port used by the lidar
-   * Set the serial port used by the lidar
-   * @param port is the new serial port
-   */
-  void setSerialPort(const std::string& port);
-
-  /**
-   * @brief Set the user latency
-   * Set the amount of user latency (in seconds)
-   * @param latency is the user latency in seconds
-   */
-  void setUserLatency(const double& latency);
-
-  /**
-   * @brief Set the minimum angle
-   * Set the minimum angle of the laser (in radians)
-   * @param angleMin is the minimum angle in radians
-   */
-  void setAngleMin(const double& anglemin);
-
-  /**
-   * @brief Set the maximum angle
-   * Set the maximum angle of the laser (in radians)
-   * @param angleMax is the maximum angle in radians
-   */
-  void setAngleMax(const double& anglemax);
-
-  /**
-   * @brief Set the laser frame id
-   * Set the laser tf frame id.
-   * @param laserFrameId is the laser tf frame id
-   */
-  void setLaserFrameId(const std::string& laserFrameId);
-
-  /**
-   * @brief Set the IP Address
-   * Set the IP address used by the lidar
-   * @param ipAddr is the IP address
-   */
-  void setIPAdddress(const std::string& ipAddr);
-
-  /**
-   * @brief Set the IP port
-   * Set the IP port used by the lidar
-   * @param ipPort is the IP port
-   */
-  void setIPPort(const int& ipPort);
-
-  /**
    * @brief Start's the nodes threads to run the lidar.
    */
   void run();

@@ -36,6 +36,7 @@
 //#include <tf2/tf.h>  // tf header for resolving tf prefix
 #include <string>
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
+#include <rclcpp/parameter.hpp>
 
 namespace urg_node
 {
@@ -57,41 +58,6 @@ UrgNode::UrgNode():
   initSetup();
 }
 
-void UrgNode::setSerialPort(const std::string& port)
-{
-  serial_port_ = port;
-}
-
-void UrgNode::setIPAdddress(const std::string& ipAddr)
-{
-  ip_address_ = ipAddr;
-}
-
-void UrgNode::setIPPort(const int& ipPort)
-{
-  ip_port_ = ipPort;
-}
-
-void UrgNode::setUserLatency(const double& latency)
-{
-  default_user_latency_ = latency;
-}
-
-void UrgNode::setLaserFrameId(const std::string& laserFrameId)
-{
-  laser_frame_id_ = laserFrameId;
-}
-
-void UrgNode::setAngleMin(const double& angleMin)
-{
-  angleMin_ = angleMin;
-}
-
-void UrgNode::setAngleMax(const double& angleMax)
-{
-  angleMax_ = angleMax;
-}
-
 void UrgNode::initSetup()
 {
   close_diagnostics_ = true;
@@ -100,7 +66,67 @@ void UrgNode::initSetup()
 
   error_code_ = 0;
   lockout_status_ = false;
-  // Initialize node and nodehandles
+  
+  // Get parameters so we can change these later.
+  auto ip_address_param = rclcpp::Parameter("ip_address", "");
+  nh_->get_parameter("ip_address", ip_address_param);
+  ip_address_ = ip_address_param.as_string();
+
+  auto ip_port_param = rclcpp::Parameter("ip_port", 10940);
+  nh_->get_parameter("ip_port", ip_port_param);
+  ip_port_ = ip_port_param.as_int();
+
+  auto laser_frame_id_param = rclcpp::Parameter("laser_frame_id", "laser");
+  nh_->get_parameter("laser_frame_id", laser_frame_id_param);
+  laser_frame_id_ = laser_frame_id_param.as_string();
+
+  auto serial_port_param = rclcpp::Parameter("serial_port", "/dev/ttyACM0");
+  nh_->get_parameter("serial_port", serial_port_param);
+  serial_port_ = serial_port_param.as_string();
+
+  auto serial_baud_param = rclcpp::Parameter("serial_baud", 115200);
+  nh_->get_parameter("serial_baud", serial_baud_param);
+  serial_baud_ = serial_baud_param.as_int();
+
+  auto calibrate_time_param = rclcpp::Parameter("calibrate_time", false);
+  nh_->get_parameter("calibrate_time", calibrate_time_param);
+  calibrate_time_ = calibrate_time_param.as_bool();
+
+  auto publish_intensity_param = rclcpp::Parameter("publish_intensity", false);
+  nh_->get_parameter("publish_intensity", publish_intensity_param);
+  publish_intensity_ = publish_intensity_param.as_bool();
+
+  auto publish_multiecho_param = rclcpp::Parameter("publish_multiecho", false);
+  nh_->get_parameter("publish_multiecho", publish_multiecho_param);
+  publish_multiecho_ = publish_multiecho_param.as_bool();
+
+  auto error_limit_param = rclcpp::Parameter("error_limit", 4);
+  nh_->get_parameter("error_limit", error_limit_param);
+  error_limit_ = error_limit_param.as_int();
+
+  auto diagnostics_tolerance_param = rclcpp::Parameter("diagnostics_tolerance", 0.05);
+  nh_->get_parameter("diagnostics_tolerance", diagnostics_tolerance_param);
+  diagnostics_tolerance_ = diagnostics_tolerance_param.as_double();
+
+  auto diagnostics_window_time_param = rclcpp::Parameter("diagnostics_window_time", 5.0);
+  nh_->get_parameter("diagnostics_window_time", diagnostics_window_time_param);
+  diagnostics_window_time_ = diagnostics_window_time_param.as_double();
+
+  auto detailed_status_param = rclcpp::Parameter("get_detailed_status", false);
+  nh_->get_parameter("get_detailed_status", detailed_status_param);
+  detailed_status_ = detailed_status_param.as_bool();
+
+  auto default_user_latency_param = rclcpp::Parameter("default_user_latency", 0);
+  nh_->get_parameter("default_user_latency", default_user_latency_param);
+  default_user_latency_ = default_user_latency_param.as_int();
+
+  auto angle_min_param = rclcpp::Parameter("angle_min", -3.14);
+  nh_->get_parameter("angle_min", angle_min_param);
+  angleMin_ = angle_min_param.as_double();
+
+  auto angle_max_param = rclcpp::Parameter("angle_max", 3.14);
+  nh_->get_parameter("angle_max", angle_max_param);
+  angleMax_ = angle_max_param.as_double();
 
   // Get parameters so we can change these later.
   pnh_.param<std::string>("ip_address", ip_address_, "");

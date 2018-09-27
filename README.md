@@ -69,53 +69,31 @@ A urdf file is already included and if you have succesfully ran an `ament build`
 
 #### Parameters
 
-
-Urg-node parameters:
+Some YAML file examples are included in the launch folder, all the available parameters are listed in it with their default value.
+For example (note that the serial_port is commented because you can't set a param with an empty string):
 ```
-arg : --serial-port
-type : string
-default value : "/dev/ttyACM0"
-```
-
-```
-arg : --user-latency
-type : double
-default value (in seconds) : 0
-```
-
-```
-arg : --ip-addr
-type : string
-default value : ""
-```
-
-```
-arg : --port
-type : int
-default value : 0
-```
-
-```
-arg : --laser-frame-id
-type : string
-default value : "laser"
-```
-
-```
-arg : --angle-min
-type : double
-default value (in radians) : -3.14
-```
-
-```
-arg : --angle-max
-type : double
-default value (in radians) : 3.14
+urg_node:
+  ros__parameters:
+    angle_max: 3.14
+    angle_min: -3.14
+    calibrate_time: false
+    default_user_latency: 0
+    diagnostics_tolerance: 0.05
+    diagnostics_window_time: 5.0
+    error_limit: 4
+    get_detailed_status: false
+    ip_address: "192.168.0.10"
+    ip_port: 10940
+    laser_frame_id: laser
+    publish_intensity: false
+    publish_multiecho: false
+    serial_baud: 115200
+    #serial_port: ""
 ```
 
 To give parameters to urg_node :
 ```
-ros2 run urg_node urg_node --ip-addr "192.168.0.10" --port 10940
+ros2 run urg_node urg_node __params:=path/to/my/file.yaml
 ```
 
 #### How ot use the ust-20lx (and other ethernet based laser)
@@ -161,5 +139,4 @@ then rviz :
 ros2 run rviz2 rviz2
 ```
 
-Add the laserScan topic, change the frame on rviz from map to world and you should be able to see the laser. It seems that there is a bug on Rviz 2 so you might not be able to visualize Laserscan outside a 1 meter radius but the data are correctly published. You can follow the issue on github [here](https://github.com/ros2/rviz/issues/341)
-
+Add the laserScan topic, change the frame on rviz from map to world and you should be able to see the laser.

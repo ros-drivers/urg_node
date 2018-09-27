@@ -46,69 +46,7 @@ int main(int argc, char **argv)
   rclcpp::init(argc, argv);
   auto node = rclcpp::Node::make_shared("urg_node");
 
-  // Support the optional serial port command line argument
-  std::string serialPort = "/dev/ttyACM0";
-  std::string option = "--serial-port";
-  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
-    serialPort = rcutils_cli_get_option(argv, argv + argc, option.c_str());
-  }
-
-  // Support the optional user latency command line argument
-  double userLatency = 0;
-  option = "--user-latency";
-  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
-    std::string strLatency = rcutils_cli_get_option(argv, argv + argc, option.c_str());
-    userLatency = boost::lexical_cast<double>(strLatency);
-  }
-
-  // Support the optional IP address command line argument
-  std::string ipAddress = "";
-  option = "--ip-addr";
-  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
-    ipAddress = rcutils_cli_get_option(argv, argv + argc, option.c_str());
-  }
-
-  // Support the optional IP port command line argument
-  int ipPort = 0;
-  option = "--port";
-  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
-    std::string strIPPort = rcutils_cli_get_option(argv, argv + argc, option.c_str());
-    ipPort = boost::lexical_cast<int>(strIPPort);
-  }
-
-  // Support the optional laser frame id command line argument
-  std::string laserFrameId = "laser";
-  option = "--laser-frame-id";
-  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
-    laserFrameId = rcutils_cli_get_option(argv, argv + argc, option.c_str());
-  }
-  
-  // Support the optional minimum angle command line argument
-  double angleMin = -3.14;
-  option = "--angle-min";
-  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
-    std::string strAngleMin = rcutils_cli_get_option(argv, argv + argc, option.c_str());
-    angleMin = boost::lexical_cast<double>(strAngleMin);
-  }
-  
-  // Support the optional minimum angle command line argument
-  double angleMax = 3.14;
-  option = "--angle-max";
-  if (rcutils_cli_option_exist(argv, argv + argc, option.c_str())) {
-    std::string strAngleMax = rcutils_cli_get_option(argv, argv + argc, option.c_str());
-    angleMax = boost::lexical_cast<double>(strAngleMax);
-  }
-
   urg_node::UrgNode urgNode;
-
-  // Update settings
-  urgNode.setSerialPort(serialPort);
-  urgNode.setUserLatency(userLatency);
-  urgNode.setIPAdddress(ipAddress);
-  urgNode.setIPPort(ipPort);
-  urgNode.setLaserFrameId(laserFrameId);
-  urgNode.setAngleMin(angleMin);
-  urgNode.setAngleMax(angleMax);
 
   // Run the urg node
   urgNode.run();
