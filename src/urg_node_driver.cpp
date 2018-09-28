@@ -36,7 +36,16 @@
 //#include <tf2/tf.h>  // tf header for resolving tf prefix
 #include <string>
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
-#include <rclcpp/parameter.hpp>
+#include <rclcpp/parameter_client.hpp>
+#include <rcl_interfaces/msg/parameter.hpp>
+#include <iostream>
+
+template <class T>
+rclcpp::Parameter get_param (rclcpp::Node* node, std::string param_name, T default_value) {
+  auto param = rclcpp::Parameter(param_name, default_value);
+  node->get_parameter(param_name, param);
+  return param;
+}
 
 namespace urg_node
 {
@@ -44,18 +53,12 @@ namespace urg_node
 // Useful typedefs
 typedef diagnostic_updater::FrequencyStatusParam FrequencyStatusParam;
 
-UrgNode::UrgNode(rclcpp::Node::SharedPtr nh, rclcpp::Node::SharedPtr private_nh) :
-  nh_(nh),
-  pnh_(private_nh)
+UrgNode::UrgNode(const std::string & topic_name): Node(topic_name)
 {
-  initSetup();
 }
 
-UrgNode::UrgNode():
-  nh_(rclcpp::Node::make_shared("urg_node")),
-  pnh_(rclcpp::Node::make_shared("urg_node"))
+UrgNode::UrgNode(): Node("urg_node")
 {
-  initSetup();
 }
 
 void UrgNode::initSetup()
@@ -66,67 +69,26 @@ void UrgNode::initSetup()
 
   error_code_ = 0;
   lockout_status_ = false;
-  
+
+
   // Get parameters so we can change these later.
-  auto ip_address_param = rclcpp::Parameter("ip_address", "");
-  nh_->get_parameter("ip_address", ip_address_param);
-  ip_address_ = ip_address_param.as_string();
+  ip_address_ = get_param(this, "ip_address", "").as_string();
+  ip_port_ = get_param(this, "ip_port", 10940).as_int();
+  laser_frame_id_ = get_param(this, "laser_frame_id", "laser").as_string();
+  serial_port_ = get_param(this, "serial_port", "/dev/ttyACM0").as_string();
+  serial_baud_ = get_param(this, "serial_baud", 115200).as_int();
+  calibrate_time_ = get_param(this, "calibrate_time", false).as_bool();
+  publish_intensity_ = get_param(this, "publish_intensity", false).as_bool();
+  publish_multiecho_ = get_param(this, "publish_multiecho", false).as_bool();
+  error_limit_ = get_param(this, "error_limit", 4).as_int();
+  diagnostics_tolerance_ = get_param(this, "diagnostics_tolerance", 0.05).as_double();
+  diagnostics_window_time_ = get_param(this, "diagnostics_window_time", 5.0).as_double();
+  detailed_status_ = get_param(this, "get_detailed_status", false).as_bool();
+  default_user_latency_ = get_param(this, "default_user_latency", 0).as_int();
+  angleMin_ = get_param(this, "angle_min", -3.14).as_double();
+  angleMax_ = get_param(this, "angle_max", 3.14).as_double();
 
-  auto ip_port_param = rclcpp::Parameter("ip_port", 10940);
-  nh_->get_parameter("ip_port", ip_port_param);
-  ip_port_ = ip_port_param.as_int();
-
-  auto laser_frame_id_param = rclcpp::Parameter("laser_frame_id", "laser");
-  nh_->get_parameter("laser_frame_id", laser_frame_id_param);
-  laser_frame_id_ = laser_frame_id_param.as_string();
-
-  auto serial_port_param = rclcpp::Parameter("serial_port", "/dev/ttyACM0");
-  nh_->get_parameter("serial_port", serial_port_param);
-  serial_port_ = serial_port_param.as_string();
-
-  auto serial_baud_param = rclcpp::Parameter("serial_baud", 115200);
-  nh_->get_parameter("serial_baud", serial_baud_param);
-  serial_baud_ = serial_baud_param.as_int();
-
-  auto calibrate_time_param = rclcpp::Parameter("calibrate_time", false);
-  nh_->get_parameter("calibrate_time", calibrate_time_param);
-  calibrate_time_ = calibrate_time_param.as_bool();
-
-  auto publish_intensity_param = rclcpp::Parameter("publish_intensity", false);
-  nh_->get_parameter("publish_intensity", publish_intensity_param);
-  publish_intensity_ = publish_intensity_param.as_bool();
-
-  auto publish_multiecho_param = rclcpp::Parameter("publish_multiecho", false);
-  nh_->get_parameter("publish_multiecho", publish_multiecho_param);
-  publish_multiecho_ = publish_multiecho_param.as_bool();
-
-  auto error_limit_param = rclcpp::Parameter("error_limit", 4);
-  nh_->get_parameter("error_limit", error_limit_param);
-  error_limit_ = error_limit_param.as_int();
-
-  auto diagnostics_tolerance_param = rclcpp::Parameter("diagnostics_tolerance", 0.05);
-  nh_->get_parameter("diagnostics_tolerance", diagnostics_tolerance_param);
-  diagnostics_tolerance_ = diagnostics_tolerance_param.as_double();
-
-  auto diagnostics_window_time_param = rclcpp::Parameter("diagnostics_window_time", 5.0);
-  nh_->get_parameter("diagnostics_window_time", diagnostics_window_time_param);
-  diagnostics_window_time_ = diagnostics_window_time_param.as_double();
-
-  auto detailed_status_param = rclcpp::Parameter("get_detailed_status", false);
-  nh_->get_parameter("get_detailed_status", detailed_status_param);
-  detailed_status_ = detailed_status_param.as_bool();
-
-  auto default_user_latency_param = rclcpp::Parameter("default_user_latency", 0);
-  nh_->get_parameter("default_user_latency", default_user_latency_param);
-  default_user_latency_ = default_user_latency_param.as_int();
-
-  auto angle_min_param = rclcpp::Parameter("angle_min", -3.14);
-  nh_->get_parameter("angle_min", angle_min_param);
-  angleMin_ = angle_min_param.as_double();
-
-  auto angle_max_param = rclcpp::Parameter("angle_max", 3.14);
-  nh_->get_parameter("angle_max", angle_max_param);
-  angleMax_ = angle_max_param.as_double();
+  //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", ip_address_.c_str())
 
   // Get parameters so we can change these later.
   pnh_.param<std::string>("ip_address", ip_address_, "");
@@ -145,17 +107,18 @@ void UrgNode::initSetup()
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_)
   {
-    echoes_pub_ = laser_proc::LaserTransport::advertiseLaser(nh_, 20);
+    auto nh = this->shared_from_this();
+    echoes_pub_ = laser_proc::LaserTransport::advertiseLaser(nh, 20);
   }
   else
   {
-    laser_pub_ = nh_->create_publisher<sensor_msgs::msg::LaserScan>("scan", 20);
+    laser_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", 20);
   }
 
-  status_service_ = nh_->create_service<std_srvs::srv::Trigger>("update_laser_status", std::bind(&UrgNode::statusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  status_service_ = this->create_service<std_srvs::srv::Trigger>("update_laser_status", std::bind(&UrgNode::statusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
   // TODO: ros2 does not have latched topics
-  status_pub_ = nh_->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);  // latched=true
+  status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);  // latched=true
 
   diagnostic_updater_.reset(new diagnostic_updater::Updater);
   diagnostic_updater_->add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
@@ -545,7 +508,8 @@ void UrgNode::scanThread()
     //srv_.reset();
     // Spin once to de-register it's services before making a new
     // service next.
-    rclcpp::spin_some(nh_);
+    //auto nh = this->shared_from_this();
+    //rclcpp::spin_some(this->shared_from_this());
 
     if (!urg_ || !rclcpp::ok)
     {
@@ -555,7 +519,7 @@ void UrgNode::scanThread()
     {
 #if 0
       // Set up dynamic reconfigure
-      srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>(pnh_));
+      srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>(this));
       // Configure limits (Must do this after creating the urgwidget)
       update_reconfigure_limits();
       srv_->setCallback(std::bind(&UrgNode::reconfigure_callback, this, _1, _2));

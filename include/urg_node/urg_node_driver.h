@@ -47,13 +47,16 @@
 #include "urg_node_msgs/msg/status.hpp"
 #include "urg_node/urg_c_wrapper.h"
 
+template <class T>
+rclcpp::Parameter get_param (rclcpp::Node* node, std::string param_name, T default_value);
+
 namespace urg_node
 {
-class UrgNode
+class UrgNode : public rclcpp::Node
 {
 public:
   UrgNode();
-  UrgNode(rclcpp::Node::SharedPtr nh, rclcpp::Node::SharedPtr private_nh);
+  UrgNode(const std::string &topic_name);
   ~UrgNode();
 
   /**
@@ -67,9 +70,10 @@ public:
    * @return True on update successful, false otherwise.
    */
   bool updateStatus();
+  
+  void initSetup();
 
 private:
-  void initSetup();
   bool connect();
   //bool reconfigure_callback(urg_node::URGConfig& config, int level);
   //void update_reconfigure_limits();
@@ -82,9 +86,6 @@ private:
       const std::shared_ptr<rmw_request_id_t> requestHeader,
       const std_srvs::srv::Trigger::Request::SharedPtr req,
       const std_srvs::srv::Trigger::Response::SharedPtr res);
-
-  rclcpp::Node::SharedPtr nh_;
-  rclcpp::Node::SharedPtr pnh_;
 
   std::thread diagnostics_thread_;
   std::thread scan_thread_;
