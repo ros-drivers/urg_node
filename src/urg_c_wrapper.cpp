@@ -31,27 +31,18 @@
  * Author: Chad Rockey, Mike O'Driscoll
  */
 
-#include "rclcpp/rclcpp.hpp"
-#include "ros2_time/time.hpp"
-#include <urg_node/urg_c_wrapper.h>
-#include <limits>
-#include <string>
-#include <vector>
-#include <boost/crc.hpp>
-#include <boost/shared_array.hpp>
+#include <urg_node/urg_c_wrapper.hpp>
 
 namespace urg_node
 {
 
-URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port,
-    bool& using_intensity, bool& using_multiecho, bool synchronize_time)
+URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho) : system_latency_(0), user_latency_(0)
 {
   // Store for comprehensive diagnostics
   ip_address_ = ip_address;
   ip_port_ = ip_port;
   serial_port_ = "";
   serial_baud_ = 0;
-
 
   long baudrate_or_port = (long)ip_port;
   const char *device = ip_address.c_str();
@@ -70,7 +61,7 @@ URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port,
 }
 
 URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
-    bool& using_intensity, bool& using_multiecho, bool synchronize_time)
+    bool& using_intensity, bool& using_multiecho) : system_latency_(0), user_latency_(0)
 {
   // Store for comprehensive diagnostics
   serial_baud_ = serial_baud;
@@ -247,7 +238,8 @@ bool URGCWrapper::grabScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
     msg->header.stamp.sec = stampTime.toSec();
     msg->header.stamp.nanosec = stampTime.toNSec();
   }
-  msg->header.stamp = msg->header.stamp + system_latency_ + user_latency_ + getAngularTimeOffset();
+  builtin_interfaces::msg::Time stampTime = rclcpp::Time(system_time_stamp) + system_latency_ + user_latency_ + getAngularTimeOffset();
+  msg->header.stamp = stampTime;
   msg->ranges.resize(num_beams);
   if (use_intensity_)
   {
@@ -303,10 +295,8 @@ bool URGCWrapper::grabScan(const sensor_msgs::msg::MultiEchoLaserScan::SharedPtr
   }
 
   // Fill scan (uses vector.reserve wherever possible to avoid initalization and unecessary memory expansion)
-  ros2_time::Time timeStamp;
-  timeStamp.fromNSec((uint64_t)system_time_stamp);
-  timeStamp = timeStamp + system_latency_ + user_latency_ + getAngularTimeOffset();
-  msg->header.stamp = timeStamp.toStamp();
+  builtin_interfaces::msg::Time stampTime = rclcpp::Time(system_time_stamp) + system_latency_ + user_latency_ + getAngularTimeOffset();
+  msg->header.stamp = stampTime;
 
   msg->ranges.reserve(num_beams);
   if (use_intensity_)
@@ -819,12 +809,12 @@ std::string URGCWrapper::getDeviceID()
   return std::string(urg_sensor_serial_id(&urg_));
 }
 
-ros2_time::Duration URGCWrapper::getComputedLatency() const
+rclcpp::Duration URGCWrapper::getComputedLatency() const
 {
   return system_latency_;
 }
 
-ros2_time::Duration URGCWrapper::getUserTimeOffset() const
+rclcpp::Duration URGCWrapper::getUserTimeOffset() const
 {
   return user_latency_;
 }
@@ -846,7 +836,7 @@ void URGCWrapper::setFrameId(const std::string& frame_id)
 
 void URGCWrapper::setUserLatency(const double latency)
 {
-  user_latency_.fromSec(latency);
+  user_latency_ = rclcpp::Duration(1e9 * latency);
 }
 
 // Must be called before urg_start
@@ -936,7 +926,7 @@ bool URGCWrapper::isMultiEchoSupported()
   return true;
 }
 
-ros2_time::Duration URGCWrapper::getAngularTimeOffset() const
+rclcpp::Duration URGCWrapper::getAngularTimeOffset() const
 {
   // Adjust value for Hokuyo's timestamps
   // Hokuyo's timestamps start from the rear center of the device (at Pi according to ROS standards)
@@ -949,27 +939,26 @@ ros2_time::Duration URGCWrapper::getAngularTimeOffset() const
   {
     circle_fraction = (getAngleMin() + 3.141592) / (2.0 * 3.141592);
   }
-  return ros2_time::Duration(circle_fraction * getScanPeriod());
+  return rclcpp::Duration(circle_fraction * getScanPeriod() * 1e9);
 }
 
-ros2_time::Duration URGCWrapper::computeLatency(size_t num_measurements)
+rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
 {
-  system_latency_.fromNSec(0);
+  system_latency_ = rclcpp::Duration(0);
 
-  ros2_time::Duration start_offset = getNativeClockOffset(1);
-  ros2_time::Duration previous_offset;
+  rclcpp::Duration start_offset = getNativeClockOffset(1);
+  rclcpp::Duration previous_offset(0);
 
-  std::vector<ros2_time::Duration> time_offsets(num_measurements);
+  std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++)
   {
-    ros2_time::Duration scan_offset = getTimeStampOffset(1);
-    ros2_time::Duration post_offset = getNativeClockOffset(1);
-    ros2_time::Duration adjusted_scan_offset = scan_offset - start_offset;
-    ros2_time::Duration adjusted_post_offset = post_offset - start_offset;
-    ros2_time::Duration average_offset;
-    average_offset.fromSec((adjusted_post_offset.toSec() + previous_offset.toSec()) / 2.0);
+    rclcpp::Duration scan_offset = getTimeStampOffset(1);
+    rclcpp::Duration post_offset = getNativeClockOffset(1);
+    rclcpp::Duration adjusted_scan_offset = scan_offset - start_offset;
+    rclcpp::Duration adjusted_post_offset = post_offset - start_offset;
+    rclcpp::Duration average_offset(adjusted_post_offset.nanoseconds() / 2.0 + previous_offset.nanoseconds() / 2.0);
 
-    time_offsets[i] = adjusted_scan_offset - average_offset;
+    time_offsets.push_back(adjusted_scan_offset - average_offset);
 
     previous_offset = adjusted_post_offset;
   }
@@ -982,7 +971,7 @@ ros2_time::Duration URGCWrapper::computeLatency(size_t num_measurements)
   return system_latency_ + getAngularTimeOffset();
 }
 
-ros2_time::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
+rclcpp::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
 {
   if (started_)
   {
@@ -998,16 +987,14 @@ ros2_time::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
     throw std::runtime_error(ss.str());
   }
 
-  std::vector<ros2_time::Duration> time_offsets(num_measurements);
+  std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++)
   {
-    ros2_time::Time request_time = ros2_time::Time::now();
-    ros2_time::Time laser_time;
-    laser_time.fromNSec(1e6 * (uint64_t)urg_time_stamp(&urg_));  // 1e6 * milliseconds = nanoseconds
-    ros2_time::Time response_time = ros2_time::Time::now();
-    ros2_time::Time average_time;
-    average_time.fromSec((response_time.toSec() + request_time.toSec()) / 2.0);
-    time_offsets[i] = laser_time - average_time;
+    rclcpp::Time request_time(std::chrono::duration_cast< std::chrono::nanoseconds >(std::chrono::system_clock::now().time_since_epoch()).count());
+    rclcpp::Time laser_time(1e6 * (uint64_t)urg_time_stamp(&urg_));  // 1e6 * milliseconds = nanoseconds
+    rclcpp::Time response_time(std::chrono::duration_cast< std::chrono::nanoseconds >(std::chrono::system_clock::now().time_since_epoch()).count());
+    rclcpp::Time average_time(response_time.nanoseconds() / 2.0 + request_time.nanoseconds() / 2.0);
+    time_offsets.push_back(laser_time - average_time);
   }
 
   if (urg_stop_time_stamp_mode(&urg_) < 0)
@@ -1023,7 +1010,7 @@ ros2_time::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
   return time_offsets[time_offsets.size() / 2];
 }
 
-ros2_time::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
+rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 {
   if (started_)
   {
@@ -1034,7 +1021,7 @@ ros2_time::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 
   start();
 
-  std::vector<ros2_time::Duration> time_offsets(num_measurements);
+  std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++)
   {
     long time_stamp;
@@ -1065,12 +1052,10 @@ ros2_time::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
       throw std::runtime_error(ss.str());
     }
 
-    ros2_time::Time laser_timestamp;
-    laser_timestamp.fromNSec(1e6 * (uint64_t)time_stamp);
-    ros2_time::Time system_time;
-    system_time.fromNSec((uint64_t)system_time_stamp);
+    rclcpp::Time laser_timestamp(1e6 * (uint64_t)time_stamp);
+    rclcpp::Time system_time((uint64_t)system_time_stamp);
 
-    time_offsets[i] = laser_timestamp - system_time;
+    time_offsets.push_back(laser_timestamp - system_time);
   }
 
   stop();

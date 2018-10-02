@@ -32,29 +32,25 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <urg_node/urg_c_wrapper.h>
+#include <urg_node/urg_c_wrapper.hpp>
 #include <vector>
 #include <string>
 
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-// TODO: the ifdef unix check below is failing on Ubuntu 16.04 for
-//       some reason. Needs to be resolved
-#include <unistd.h>
 #include <assert.h>
+#include <rclcpp/rclcpp.hpp>
 
-/* gcc defined unix */
-#ifdef unix
-#include <unistd.h>
-#endif
-#ifdef WIN32
-#include <io.h>
-#define pipe(X) _pipe(X, 4096, O_BINARY)
-#define fileno _fileno
-#define dup2 _dup2
-#define read _read
+
+#ifdef _WIN32
+  #include <io.h>
+  #define pipe(X) _pipe(X, 4096, O_BINARY)
+  #define fileno _fileno
+  #define dup2 _dup2
+  #define read _read
+#elif  __linux__ || __unix || __unix__
+  #include <unistd.h>
 #endif
 
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
@@ -76,8 +72,7 @@ std::vector<std::string> split(const std::string &s, char delim)
   return elems;
 }
 
-int
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
   if (argc < 2 || argc > 3)
   {
@@ -95,7 +90,6 @@ main(int argc, char** argv)
   {
     int fds[2];
     int res;
-    char buf[256];
     int so;
 
     res = pipe(fds);
@@ -174,7 +168,8 @@ main(int argc, char** argv)
     {
       printf("getID failed: %s\n", e.what());
     }
-    ros2_time::Duration(1.0).sleep();
+
+    rclcpp::sleep_for(std::chrono::seconds(1));
   }
 
   if (verbose)

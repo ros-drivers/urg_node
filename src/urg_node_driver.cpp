@@ -31,14 +31,8 @@
  * Author: Chad Rockey, Michael Carroll, Mike O'Driscoll
  */
 
-#include "urg_node/urg_node_driver.h"
-
-//#include <tf2/tf.h>  // tf header for resolving tf prefix
-#include <string>
-#include <diagnostic_msgs/msg/diagnostic_status.hpp>
-#include <rclcpp/parameter_client.hpp>
-#include <rcl_interfaces/msg/parameter.hpp>
-#include <iostream>
+#include "urg_node/urg_node_driver.hpp"
+#include <chrono>
 
 template <class T>
 rclcpp::Parameter get_param (rclcpp::Node* node, std::string param_name, T default_value) {
@@ -87,8 +81,6 @@ void UrgNode::initSetup()
   default_user_latency_ = get_param(this, "default_user_latency", 0).as_int();
   angleMin_ = get_param(this, "angle_min", -3.14).as_double();
   angleMax_ = get_param(this, "angle_max", 3.14).as_double();
-
-  //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", ip_address_.c_str())
 
   // Get parameters so we can change these later.
   pnh_.param<std::string>("ip_address", ip_address_, "");
@@ -172,19 +164,15 @@ bool UrgNode::updateStatus()
         }
         else
         {
-           //ROS_WARN("Failed to get detection report.");
-           std::cerr << "Failed to get detection report." << std::endl;
+          RCLCPP_WARN(this->get_logger(), "Failed to get detection report.");
         }
-
         // Publish the status on the latched topic for inspection.
         status_pub_->publish(msg);
         result = true;
       }
       else
       {
-        //ROS_WARN("Failed to retrieve status");
-        std::cerr << "Failed to retrieve status" << std::endl;
-
+        RCLCPP_WARN(this->get_logger(), "Failed to retrieve status");
         urg_node_msgs::msg::Status msg;
         status_pub_->publish(msg);
       }
@@ -198,7 +186,7 @@ void UrgNode::statusCallback(
     const std_srvs::srv::Trigger::Request::SharedPtr req,
     const std_srvs::srv::Trigger::Response::SharedPtr res)
 {
-  //ROS_INFO("Got update lidar status callback");
+  RCLCPP_INFO(this->get_logger(), "Got update lidar status callback");
   std::cerr << "Got update lidar status callback" << std::endl;
   res->success = false;
   res->message = "Laser not ready";
@@ -290,30 +278,24 @@ void UrgNode::calibrate_time_offset()
   std::unique_lock<std::mutex> lock(lidar_mutex_);
   if (!urg_)
   {
-    //ROS_DEBUG_THROTTLE(10, "Unable to calibrate time offset. Not Ready.");
-    std::cerr << "Unable to calibrate time offset. Not Ready." << std::endl;
+    RCLCPP_DEBUG(this->get_logger(), "Unable to calibrate time offset. Not Ready.");
     return;
   }
   try
   {
     // Don't let outside interruption effect lidar offset.
-    //ROS_INFO("Starting calibration. This will take a few seconds.");
-    std::cerr << "Starting calibration. This will take a few seconds." << std::endl;
-    //ROS_WARN("Time calibration is still experimental.");
-    std::cerr << "Time calibration is still experimental." << std::endl;
-    ros2_time::Duration latency = urg_->computeLatency(10);
-    //ROS_INFO("Calibration finished. Latency is: %.4f.", latency.toSec());
-    std::cerr << "Calibration finished. Latency is: " << latency.toSec() << std::endl;
+    RCLCPP_INFO(this->get_logger(), "Starting calibration. This will take a few seconds.");
+    RCLCPP_WARN(this->get_logger(), "Time calibration is still experimental.");
+    rclcpp::Duration latency = urg_->computeLatency(10);
+    RCLCPP_INFO(this->get_logger(), "Calibration finished. Latency is: %.4f.", latency.nanoseconds()*1e9);
   }
   catch (std::runtime_error& e)
   {
-    //ROS_FATAL("Could not calibrate time offset: %s", e.what());
-    std::cerr << "Could not calibrate time offset: " << e.what() << std::endl;
-    ros2_time::Duration(1.0).sleep();
+    RCLCPP_FATAL(this->get_logger(), "Could not calibrate time offset: %s", e.what());
+    rclcpp::sleep_for(std::chrono::seconds(1));
     rclcpp::shutdown();
   }
 }
-
 
 // Diagnostics update task to be run in a thread.
 void UrgNode::updateDiagnostics()
@@ -381,8 +363,8 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
   stat.add("Firmware Date", firmware_date_);
   stat.add("Protocol Version", protocol_version_);
   stat.add("Device ID", device_id_);
-  stat.add("Computed Latency", urg_->getComputedLatency());
-  stat.add("User Time Offset", urg_->getUserTimeOffset());
+  stat.add("Computed Latency", urg_->getComputedLatency().nanoseconds());
+  stat.add("User Time Offset", urg_->getUserTimeOffset().nanoseconds());
 
   // Things not explicitly required by REP-0138, but still interesting.
   stat.add("Device Status", device_status_);
@@ -432,8 +414,7 @@ bool UrgNode::connect()
       ss << " intensity and";
     }
     ss << " ID: " << urg_->getDeviceID();
-    //ROS_INFO_STREAM(ss.str());
-    std::cerr << ss.str() << std::endl;
+    RCLCPP_INFO(this->get_logger(), "%s", ss.str().c_str());
 
     device_status_ = urg_->getSensorStatus();
     vendor_name_ = urg_->getVendorName();
@@ -467,15 +448,13 @@ bool UrgNode::connect()
   }
   catch (std::runtime_error& e)
   {
-    //ROS_ERROR_THROTTLE(10.0, "Error connecting to Hokuyo: %s", e.what());
-    std::cerr << "Error connecting to Hokuyo: " << e.what() << std::endl;
+    RCLCPP_ERROR(this->get_logger(), "Error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
   }
   catch (std::exception& e)
   {
-    //ROS_ERROR_THROTTLE(10.0, "Unknown error connecting to Hokuyo: %s", e.what());
-    std::cerr << "Unknown error connecting to Hokuyo: " << e.what() << std::endl;
+    RCLCPP_ERROR(this->get_logger(), "Unknown error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
   }
@@ -540,25 +519,22 @@ void UrgNode::scanThread()
       }
       device_status_ = urg_->getSensorStatus();
       urg_->start();
-      //ROS_INFO("Streaming data.");
-      std::cerr << "Streaming data." << std::endl;
+      RCLCPP_INFO(this->get_logger(), "Streaming data.");
       // Clear the error count.
       error_count_ = 0;
     }
     catch (std::runtime_error& e)
     {
-      //ROS_ERROR_THROTTLE(10.0, "Error starting Hokuyo: %s", e.what());
-      std::cerr << "Error starting Hokuyo: " << e.what() << std::endl;
+      RCLCPP_ERROR(this->get_logger(), "Error starting Hokuyo: %s", e.what());
       urg_.reset();
-      ros2_time::Duration(1.0).sleep();
+      rclcpp::sleep_for(std::chrono::seconds(1));
       continue;  // Return to top of main loop
     }
     catch (...)
     {
-      //ROS_ERROR_THROTTLE(10.0, "Unknown error starting Hokuyo");
-      std::cerr << "Unknown error starting Hokuyo" << std::endl;
+      RCLCPP_ERROR(this->get_logger(), "Unknown error starting Hokuyo");
       urg_.reset();
-      ros2_time::Duration(1.0).sleep();
+      rclcpp::sleep_for(std::chrono::seconds(1));
       continue;  // Return to top of main loop
     }
 
@@ -578,8 +554,7 @@ void UrgNode::scanThread()
           }
           else
           {
-            //ROS_WARN_THROTTLE(10.0, "Could not grab multi echo scan.");
-            std::cerr << "Could not grab multi echo scan." << std::endl;
+            RCLCPP_WARN(this->get_logger(), "Could not grab multi echo scan.");
             device_status_ = urg_->getSensorStatus();
             error_count_++;
           }
@@ -594,8 +569,7 @@ void UrgNode::scanThread()
           }
           else
           {
-            //ROS_WARN_THROTTLE(10.0, "Could not grab single echo scan.");
-            std::cerr << "Could not grab single echo scan." << std::endl;
+            RCLCPP_WARN(this->get_logger(), "Could not grab single echo scan.");
             device_status_ = urg_->getSensorStatus();
             error_count_++;
           }
@@ -603,8 +577,7 @@ void UrgNode::scanThread()
       }
       catch (...)
       {
-        //ROS_ERROR_THROTTLE(10.0, "Unknown error grabbing Hokuyo scan.");
-        std::cerr << "Unknown error grabbing Hokuyo scan." << std::endl;
+        RCLCPP_WARN(this->get_logger(), "Unknown error grabbing Hokuyo scan.");
         error_count_++;
       }
 
@@ -614,13 +587,12 @@ void UrgNode::scanThread()
         service_yield_ = false;
       }
 
-      // Reestablish conneciton if things seem to have gone wrong.
+      // Reestablish connection if things seem to have gone wrong.
       if (error_count_ > error_limit_)
       {
-        //ROS_ERROR_THROTTLE(10.0, "Error count exceeded limit, reconnecting.");
-        std::cerr << "Error count exceeded limit, reconnecting." << std::endl;
+        RCLCPP_ERROR(this->get_logger(), "Error count exceeded limit, reconnecting.");
         urg_.reset();
-        ros2_time::Duration(2.0).sleep();
+        rclcpp::sleep_for(std::chrono::seconds(2));
 
         break;  // Return to top of main loop
       }

@@ -41,11 +41,17 @@
 #include <laser_proc/LaserTransport.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
 //#include <urg_node/URGConfig.h>
 #include <std_srvs/srv/trigger.hpp>
 
 #include "urg_node_msgs/msg/status.hpp"
-#include "urg_node/urg_c_wrapper.h"
+#include "urg_node/urg_c_wrapper.hpp"
+
+//#include <tf2/tf.h>  // tf header for resolving tf prefix
+#include <rclcpp/parameter_client.hpp>
+#include <rcl_interfaces/msg/parameter.hpp>
+#include <iostream>
 
 template <class T>
 rclcpp::Parameter get_param (rclcpp::Node* node, std::string param_name, T default_value);
@@ -56,7 +62,7 @@ class UrgNode : public rclcpp::Node
 {
 public:
   UrgNode();
-  UrgNode(const std::string &topic_name);
+  explicit UrgNode(const std::string &topic_name);
   ~UrgNode();
 
   /**
