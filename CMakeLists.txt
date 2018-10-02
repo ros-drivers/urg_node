@@ -14,7 +14,6 @@ find_package(tf2 REQUIRED)
 find_package(urg_c REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-find_package(ros2_time REQUIRED)
 find_package(Boost REQUIRED thread)
 
 set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++14")
@@ -31,7 +30,6 @@ set(INCLUDE_DIRS
   ${std_srvs_INCLUDE_DIRS}
   ${tf2_INCLUDE_DIRS}
   ${urg_c_INCLUDE_DIRS}
-  ${ros2_time_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
 )
 
@@ -46,7 +44,6 @@ set(LIBS
   ${std_srvs_LIBRARIES}
   ${tf2_LIBRARIES}
   ${urg_c_LIBRARIES}
-  ${ros2_time_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
@@ -119,7 +116,6 @@ ament_export_dependencies(tf2)
 ament_export_dependencies(urg_c)
 ament_export_dependencies(builtin_interfaces)
 ament_export_dependencies(rosidl_default_generators)
-ament_export_dependencies(ros2_time)
 ament_export_include_directories(${INCLUDE_DIRS})
 ament_export_libraries(urg_c_wrapper urg_node_driver ${LIBS})
 

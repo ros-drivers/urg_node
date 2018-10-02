@@ -31,14 +31,7 @@
  * Author: Chad Rockey, Michael Carroll, Mike O'Driscoll
  */
 
-#include "urg_node/urg_node_driver.h"
-
-// boost headers
-#include <boost/lexical_cast.hpp>
-
-// rcutils headers
-#include <rcutils/cmdline_parser.h>
-
+#include "urg_node/urg_node_driver.hpp"
 
 int main(int argc, char **argv)
 {
