@@ -2,8 +2,8 @@ urg_node:
   ros__parameters:
     angle_max: 3.14
     angle_min: -3.14
-    calibrate_time: true # default: false
-    default_user_latency: 0
+    calibrate_time: false
+    default_user_latency: 0.0
     diagnostics_tolerance: 0.05
     diagnostics_window_time: 5.0
     error_limit: 4
