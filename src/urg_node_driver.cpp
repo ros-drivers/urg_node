@@ -78,7 +78,7 @@ void UrgNode::initSetup()
   diagnostics_tolerance_ = get_param(this, "diagnostics_tolerance", 0.05).as_double();
   diagnostics_window_time_ = get_param(this, "diagnostics_window_time", 5.0).as_double();
   detailed_status_ = get_param(this, "get_detailed_status", false).as_bool();
-  default_user_latency_ = get_param(this, "default_user_latency", 0).as_int();
+  default_user_latency_ = get_param(this, "default_user_latency", 0.0).as_double();
   angleMin_ = get_param(this, "angle_min", -3.14).as_double();
   angleMax_ = get_param(this, "angle_max", 3.14).as_double();
 
@@ -274,7 +274,7 @@ void UrgNode::calibrate_time_offset()
     RCLCPP_INFO(this->get_logger(), "Starting calibration. This will take a few seconds.");
     RCLCPP_WARN(this->get_logger(), "Time calibration is still experimental.");
     rclcpp::Duration latency = urg_->computeLatency(10);
-    RCLCPP_INFO(this->get_logger(), "Calibration finished. Latency is: %.4f.", latency.nanoseconds()*1e9);
+    RCLCPP_INFO(this->get_logger(), "Calibration finished. Latency is: %.4f sec.", (double)(latency.nanoseconds()*1e-9));
   }
   catch (std::runtime_error& e)
   {
