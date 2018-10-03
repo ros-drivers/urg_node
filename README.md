@@ -3,8 +3,8 @@ urg_node
 
 ROS wrapper for the Hokuyo urg_c library.
 
-## Build instructions (from source)
-Install ros2 from source as per instructions [here](https://github.com/ros2/ros2/wiki/Linux-Development-Setup)
+## Build instructions
+Install ros2 as per instructions [here](https://github.com/ros2/ros2/wiki/Installation)
 
 Create a folder for urg and clone this repo
 
@@ -52,7 +52,7 @@ Until the launch API is sorted out, there are two ways to view the laserscan in 
 ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 "world" "laser"
 ```
 
-where "laser" is the frame id, which you can set in your urg_node executable as an argument using `--laser-frame-id`
+where "laser" is the frame id, which you can set in your urg_node yaml file
 
 2) Run the robot_state_publisher along with a urdf file so that a fixed frame can be loaded in rviz
 
@@ -69,26 +69,26 @@ A urdf file is already included and if you have succesfully ran an `ament build`
 
 #### Parameters
 
-Some YAML file examples are included in the launch folder, all the available parameters are listed in it with their default value.
+A YAML file example is included in the launch folder, all the available parameters are listed in it.
 For example (note that the serial_port is commented because you can't set a param with an empty string):
 ```
 urg_node:
   ros__parameters:
+    ip_address: "192.168.0.10"
+    ip_port: 10940
+    #serial_port: ""
+    serial_baud: 115200
+    laser_frame_id: laser
     angle_max: 3.14
     angle_min: -3.14
+    publish_intensity: false
+    publish_multiecho: false
     calibrate_time: false
     default_user_latency: 0
     diagnostics_tolerance: 0.05
     diagnostics_window_time: 5.0
     error_limit: 4
     get_detailed_status: false
-    ip_address: "192.168.0.10"
-    ip_port: 10940
-    laser_frame_id: laser
-    publish_intensity: false
-    publish_multiecho: false
-    serial_baud: 115200
-    #serial_port: ""
 ```
 
 To give parameters to urg_node :
@@ -96,7 +96,7 @@ To give parameters to urg_node :
 ros2 run urg_node urg_node __params:=path/to/my/file.yaml
 ```
 
-#### How ot use the ust-20lx (and other ethernet based laser)
+#### How to use the ust-20lx (and other ethernet based laser)
 
 To use ust-20lx, you need to be on the same subnet as the laser.
 The ust-20lx default ip is 192.168.0.10, so you might need to change your ip, for something on the same subnet. 
@@ -122,11 +122,11 @@ You should now be able to ping the ust-20lx at its address (by default 192.168.0
 ```
 ping 192.168.0.10
 ```
-If you don't receive an answer, you might have a connection problem or the IP of your laser might have been change, either find it and go on the same subnet or reset it.
+If you don't receive any answer, you might have a connection problem or the IP of your laser might have been change, either find it and go on the same subnet or reset it.
 
 - Once you can ping the laser, you can launch the urg_node :
 ```
-ros2 run urg_node urg_node --ip-addr "192.168.0.10" --port 10940 --angle-min -2.36 --angle-max 2.36
+ros2 run urg_node urg_node __params:=path/to/my/file.yaml
 ```
 
 then the static publisher :
