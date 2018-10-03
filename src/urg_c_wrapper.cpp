@@ -836,7 +836,8 @@ void URGCWrapper::setFrameId(const std::string& frame_id)
 
 void URGCWrapper::setUserLatency(const double latency)
 {
-  user_latency_ = rclcpp::Duration(1e9 * latency);
+  uint64_t nanosec = (uint64_t) (1e9 * latency);
+  user_latency_ = rclcpp::Duration(nanosec);
 }
 
 // Must be called before urg_start
@@ -939,7 +940,8 @@ rclcpp::Duration URGCWrapper::getAngularTimeOffset() const
   {
     circle_fraction = (getAngleMin() + 3.141592) / (2.0 * 3.141592);
   }
-  return rclcpp::Duration(circle_fraction * getScanPeriod() * 1e9);
+  uint64_t nanosec = (uint64_t)(circle_fraction * getScanPeriod() * 1e9);
+  return rclcpp::Duration(nanosec);
 }
 
 rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
@@ -947,18 +949,26 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
   system_latency_ = rclcpp::Duration(0);
 
   rclcpp::Duration start_offset = getNativeClockOffset(1);
+  std::cout << "start_offset : " << start_offset.nanoseconds() << std::endl;
   rclcpp::Duration previous_offset(0);
+  std::cout << "previous_offset : " << previous_offset.nanoseconds() << "\n" << std::endl;
 
   std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++)
   {
     rclcpp::Duration scan_offset = getTimeStampOffset(1);
+    std::cout << "scan_offset : " << scan_offset.nanoseconds() << std::endl;
     rclcpp::Duration post_offset = getNativeClockOffset(1);
+    std::cout << "post_offset : " << post_offset.nanoseconds() << std::endl;
     rclcpp::Duration adjusted_scan_offset = scan_offset - start_offset;
+    std::cout << "adjusted_scan_offset : " << adjusted_scan_offset.nanoseconds() << std::endl;
     rclcpp::Duration adjusted_post_offset = post_offset - start_offset;
+    std::cout << "adjusted_post_offset : " << adjusted_post_offset.nanoseconds() << std::endl;
     rclcpp::Duration average_offset(adjusted_post_offset.nanoseconds() / 2.0 + previous_offset.nanoseconds() / 2.0);
+    std::cout << "average_offset : " << average_offset.nanoseconds() << std::endl;
 
     time_offsets.push_back(adjusted_scan_offset - average_offset);
+    std::cout << "time_offsets " << i << " : " << time_offsets[i].nanoseconds() << std::endl;
 
     previous_offset = adjusted_post_offset;
   }
@@ -967,7 +977,9 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   system_latency_ = time_offsets[time_offsets.size() / 2];
+  std::cout << "system_latency_ : " << system_latency_.nanoseconds() << std::endl;
   // Angular time offset makes the output comparable to that of hokuyo_node
+  std::cout << "start_offset : " << (system_latency_ + getAngularTimeOffset()).nanoseconds() << "\n\n" << std::endl;
   return system_latency_ + getAngularTimeOffset();
 }
 
@@ -991,9 +1003,24 @@ rclcpp::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
   for (size_t i = 0; i < num_measurements; i++)
   {
     rclcpp::Time request_time(std::chrono::duration_cast< std::chrono::nanoseconds >(std::chrono::system_clock::now().time_since_epoch()).count());
-    rclcpp::Time laser_time(1e6 * (uint64_t)urg_time_stamp(&urg_));  // 1e6 * milliseconds = nanoseconds
+    std::cout << "request_time : " << request_time.nanoseconds() << std::endl;
+    double urg_ts = urg_time_stamp(&urg_);
+    std::cout << "urg_ts : " << urg_ts << std::endl;
+    uint64_t urg_nano = 1e6 * (uint64_t)urg_ts;
+    std::cout << "urg_nano : " << urg_nano << std::endl;
+    uint64_t sec = urg_nano / 1000000000;
+    uint64_t nsec = urg_nano % 1000000000;
+    uint64_t nsecPart = nsec % 1000000000UL;
+    uint64_t secPart = nsec / 1000000000UL;
+    sec += secPart;
+    nsec = nsecPart;
+    uint64_t res = sec + nsec;
+    rclcpp::Time laser_time(res);
+    std::cout << "laser_time : " << laser_time.nanoseconds() << std::endl;
     rclcpp::Time response_time(std::chrono::duration_cast< std::chrono::nanoseconds >(std::chrono::system_clock::now().time_since_epoch()).count());
+    std::cout << "response_time : " << response_time.nanoseconds() << std::endl;
     rclcpp::Time average_time(response_time.nanoseconds() / 2.0 + request_time.nanoseconds() / 2.0);
+    std::cout << "average_time : " << average_time.nanoseconds() << std::endl;
     time_offsets.push_back(laser_time - average_time);
   }
 
@@ -1007,6 +1034,7 @@ rclcpp::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
   // Return median value
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
+  std::cout << "average time_offsets : " << time_offsets[time_offsets.size() / 2].nanoseconds() << "\n\n" << std::endl;
   return time_offsets[time_offsets.size() / 2];
 }
 
@@ -1052,7 +1080,8 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
       throw std::runtime_error(ss.str());
     }
 
-    rclcpp::Time laser_timestamp(1e6 * (uint64_t)time_stamp);
+    uint64_t nanosec = (uint64_t)(1e6 * time_stamp);
+    rclcpp::Time laser_timestamp(nanosec);
     rclcpp::Time system_time((uint64_t)system_time_stamp);
 
     time_offsets.push_back(laser_timestamp - system_time);
