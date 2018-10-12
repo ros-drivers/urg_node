@@ -35,6 +35,7 @@
 #ifndef URG_NODE_URG_NODE_DRIVER_H
 #define URG_NODE_URG_NODE_DRIVER_H
 
+#include <chrono>
 #include <string>
 #include <rclcpp/rclcpp.hpp>
 //#include <dynamic_reconfigure/server.h>
@@ -81,6 +82,7 @@ public:
 
 private:
   bool connect();
+  void reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event);
   //bool reconfigure_callback(urg_node::URGConfig& config, int level);
   //void update_reconfigure_limits();
   void calibrate_time_offset();
@@ -92,6 +94,7 @@ private:
       const std::shared_ptr<rmw_request_id_t> requestHeader,
       const std_srvs::srv::Trigger::Request::SharedPtr req,
       const std_srvs::srv::Trigger::Response::SharedPtr res);
+
 
   std::thread diagnostics_thread_;
   std::thread scan_thread_;
@@ -133,8 +136,12 @@ private:
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
   bool detailed_status_;
-  double angleMin_;
-  double angleMax_;
+  double angle_min_;
+  double angle_max_;
+  /** Divide the number of rays per scan by cluster_ (if cluster_ == 10, you get 1/10 ray per scan) */
+  int cluster_; // default : 1, range : 1 to 100
+  /** Reduce the rate of scans */
+  int skip_; // default : 0, range : 0 to 9
 
   /** The default user latency value. */
   double default_user_latency_;
@@ -149,6 +156,10 @@ private:
   rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
+
+  /** The parameters client to catch modification of parameters during runtime */
+  rclcpp::AsyncParametersClient::SharedPtr parameters_client_;
+  rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;
 };
 
 }  // namespace urg_node

@@ -89,11 +89,29 @@ urg_node:
     diagnostics_window_time: 5.0
     error_limit: 4
     get_detailed_status: false
+    cluster: 0
+    skip: 1
 ```
 
 To give parameters to urg_node :
 ```
 ros2 run urg_node urg_node __params:=path/to/my/file.yaml
+```
+
+You can reconfigure parameters while the node is launched.
+For now, you can only reconfigure the following parameters:
+```
+laser_frame_id
+error_limit
+default_user_latency
+angle_max
+angle_min
+cluster
+skip
+```
+For example to reconfigure the cluster parameter using command line :
+```
+ros2 param set /urg_node cluster 1
 ```
 
 #### How to use the ust-20lx (and other ethernet based laser)

@@ -32,14 +32,6 @@
  */
 
 #include "urg_node/urg_node_driver.hpp"
-#include <chrono>
-
-template <class T>
-rclcpp::Parameter get_param (rclcpp::Node* node, std::string param_name, T default_value) {
-  auto param = rclcpp::Parameter(param_name, default_value);
-  node->get_parameter(param_name, param);
-  return param;
-}
 
 namespace urg_node
 {
@@ -64,23 +56,24 @@ void UrgNode::initSetup()
   error_code_ = 0;
   lockout_status_ = false;
 
-
   // Get parameters so we can change these later.
-  ip_address_ = get_param(this, "ip_address", "").as_string();
-  ip_port_ = get_param(this, "ip_port", 10940).as_int();
-  laser_frame_id_ = get_param(this, "laser_frame_id", "laser").as_string();
-  serial_port_ = get_param(this, "serial_port", "/dev/ttyACM0").as_string();
-  serial_baud_ = get_param(this, "serial_baud", 115200).as_int();
-  calibrate_time_ = get_param(this, "calibrate_time", false).as_bool();
-  publish_intensity_ = get_param(this, "publish_intensity", false).as_bool();
-  publish_multiecho_ = get_param(this, "publish_multiecho", false).as_bool();
-  error_limit_ = get_param(this, "error_limit", 4).as_int();
-  diagnostics_tolerance_ = get_param(this, "diagnostics_tolerance", 0.05).as_double();
-  diagnostics_window_time_ = get_param(this, "diagnostics_window_time", 5.0).as_double();
-  detailed_status_ = get_param(this, "get_detailed_status", false).as_bool();
-  default_user_latency_ = get_param(this, "default_user_latency", 0.0).as_double();
-  angleMin_ = get_param(this, "angle_min", -3.14).as_double();
-  angleMax_ = get_param(this, "angle_max", 3.14).as_double();
+  this->get_parameter_or("ip_address", ip_address_, std::string(""));
+  this->get_parameter_or("ip_port", ip_port_, 10940);
+  this->get_parameter_or("laser_frame_id", laser_frame_id_, std::string("laser"));
+  this->get_parameter_or("serial_port", serial_port_, std::string("/dev/ttyACM0"));
+  this->get_parameter_or("serial_baud", serial_baud_, 115200);
+  this->get_parameter_or("calibrate_time", calibrate_time_, false);
+  this->get_parameter_or("publish_intensity", publish_intensity_, false);
+  this->get_parameter_or("publish_multiecho", publish_multiecho_, false);
+  this->get_parameter_or("error_limit", error_limit_, 4);
+  this->get_parameter_or("diagnostics_tolerance", diagnostics_tolerance_, 0.05);
+  this->get_parameter_or("diagnostics_window_time", diagnostics_window_time_, 5.0);
+  this->get_parameter_or("get_detailed_status", detailed_status_, false);
+  this->get_parameter_or("default_user_latency", default_user_latency_, 0.0);
+  this->get_parameter_or("angle_min", angle_min_, -3.14);
+  this->get_parameter_or("angle_max", angle_max_, 3.14);
+  this->get_parameter_or("skip", skip_, 0);
+  this->get_parameter_or("cluster", cluster_, 1);
 
 
   // Set up publishers and diagnostics updaters, we only need one
@@ -101,6 +94,10 @@ void UrgNode::initSetup()
 
   diagnostic_updater_.reset(new diagnostic_updater::Updater);
   diagnostic_updater_->add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
+
+
+  // The parameters client to catch modification of parameters
+  parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this->shared_from_this());
 }
 
 UrgNode::~UrgNode()
@@ -190,75 +187,104 @@ void UrgNode::statusCallback(
   }
 }
 
-#if 0
-bool UrgNode::reconfigure_callback(urg_node::URGConfig& config, int level)
+void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event)
 {
-  if (!urg_)
-  {
-    ROS_ERROR("Reconfigure failed, not ready");
-    return false;
+  // For debug only
+  std::stringstream ss;
+  ss << "\nParameter event:\n ";//new parameters:";
+  for (auto & new_parameter : event->new_parameters) {
+    ss << "\n  " << new_parameter.name;
+  }
+  //ss << "\n changed parameters:";
+  for (auto & changed_parameter : event->changed_parameters) {
+    ss << "\n  " << changed_parameter.name;
+  }
+  //ss << "\n deleted parameters:";
+  for (auto & deleted_parameter : event->deleted_parameters) {
+    ss << "\n  " << deleted_parameter.name;
+  }
+  ss << "\n";
+  RCLCPP_INFO(this->get_logger(), ss.str().c_str());
+
+  std::vector<rcl_interfaces::msg::Parameter> parameter_vec = event->new_parameters;
+  parameter_vec.insert(parameter_vec.end(), event->changed_parameters.begin(), event->changed_parameters.end());
+
+  bool restart_required(false);
+
+  for(auto parameter : parameter_vec){
+    if(parameter.name.compare("ip_address") == 0){
+      //ip_address_ = parameter.value.string_value;
+
+    } else if(parameter.name.compare("ip_port") == 0){
+      //ip_port_ = parameter.value.integer_value;
+
+    } else if(parameter.name.compare("laser_frame_id") == 0){
+      laser_frame_id_ = parameter.value.string_value;
+
+    } else if(parameter.name.compare("serial_port") == 0){
+      //serial_port_ = parameter.value.string_value;
+
+    } else if(parameter.name.compare("serial_baud") == 0){
+      //serial_baud_ = parameter.value.integer_value;
+
+    } else if(parameter.name.compare("calibrate_time") == 0){
+      //calibrate_time_ = parameter.value.bool_value;
+
+    } else if(parameter.name.compare("publish_intensity") == 0){
+      //publish_intensity_ = parameter.value.bool_value;
+
+    } else if(parameter.name.compare("publish_multiecho") == 0){
+      //publish_multiecho_ = parameter.value.bool_value;
+
+    } else if(parameter.name.compare("error_limit") == 0){
+      error_limit_ = parameter.value.integer_value;
+
+    } else if(parameter.name.compare("default_user_latency") == 0){
+      default_user_latency_ = parameter.value.integer_value + parameter.value.double_value;
+
+    } else if(parameter.name.compare("angle_min") == 0){
+      angle_min_ = parameter.value.integer_value + parameter.value.double_value;
+      restart_required = true;
+
+    } else if(parameter.name.compare("angle_max") == 0){
+      angle_max_ = parameter.value.integer_value + parameter.value.double_value;
+      restart_required = true;
+
+    } else if(parameter.name.compare("cluster") == 0){
+      cluster_ = parameter.value.integer_value;
+      restart_required = true;
+
+    } else if(parameter.name.compare("skip") == 0){
+      skip_ = parameter.value.integer_value;
+      restart_required = true;
+
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "The parameter %s is not part of the reconfigurable parameters.", parameter.name);
+    }
   }
 
-  if (level < 0)  // First call, initialize, laser not yet started
-  {
-    urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
-    urg_->setSkip(config.skip);
-  }
-  else if (level > 0)   // Must stop
-  {
+  if(restart_required){
+    std::unique_lock<std::mutex> lock(lidar_mutex_);
     urg_->stop();
-    ROS_INFO("Stopped data due to reconfigure.");
+    rclcpp::sleep_for(std::chrono::milliseconds(100));
+    urg_->setAngleLimitsAndCluster(angle_min_, angle_max_, cluster_);
 
-    // Change values that required stopping
-    urg_->setAngleLimitsAndCluster(config.angle_min, config.angle_max, config.cluster);
-    urg_->setSkip(config.skip);
+    freq_min_ = 1.0 / (urg_->getScanPeriod() * (skip_ + 1));
+    urg_->setSkip(skip_);
 
-    try
-    {
+    try {
       urg_->start();
-      ROS_INFO("Streaming data after reconfigure.");
-    }
-    catch (std::runtime_error& e)
-    {
-      ROS_FATAL("%s", e.what());
-      ros::Duration(1.0).sleep();
-      ros::shutdown();
-      return false;
+      RCLCPP_INFO(this->get_logger(), "Streaming data after reconfigure.");
+    } catch (std::runtime_error& e) {
+      RCLCPP_FATAL(this->get_logger(), "Error while reconfiguring : %s", e.what());
+      rclcpp::sleep_for(std::chrono::seconds(1));
+      rclcpp::shutdown();
     }
   }
 
-  // The publish frequency changes based on the number of skipped scans.
-  // Update accordingly here.
-  freq_min_ = 1.0 / (urg_->getScanPeriod() * (config.skip + 1));
-
-  std::string frame_id = tf::resolve(config.tf_prefix, config.frame_id);
-  urg_->setFrameId(frame_id);
-  urg_->setUserLatency(config.time_offset);
-
-  return true;
+  urg_->setFrameId(laser_frame_id_);
+  urg_->setUserLatency(default_user_latency_);
 }
-
-void UrgNode::update_reconfigure_limits()
-{
-  if (!urg_ || !srv_)
-  {
-    ROS_DEBUG_THROTTLE(10, "Unable to update reconfigure limits. Not Ready.");
-    return;
-  }
-
-  urg_node::URGConfig min, max;
-  srv_->getConfigMin(min);
-  srv_->getConfigMax(max);
-
-  min.angle_min = urg_->getAngleMinLimit();
-  min.angle_max = min.angle_min;
-  max.angle_max = urg_->getAngleMaxLimit();
-  max.angle_min = max.angle_max;
-
-  srv_->setConfigMin(min);
-  srv_->setConfigMax(max);
-}
-#endif
 
 void UrgNode::calibrate_time_offset()
 {
@@ -418,15 +444,12 @@ bool UrgNode::connect()
 
     // The publish frequency changes based on the number of skipped scans.
     // Update accordingly here.
-    int skip = 0;
-    freq_min_ = 1.0 / (urg_->getScanPeriod() * (skip + 1));
+    freq_min_ = 1.0 / (urg_->getScanPeriod() * (skip_ + 1));
 
-    int cluster = 1;
-    urg_->setAngleLimitsAndCluster(angleMin_, angleMax_, cluster);
-    urg_->setSkip(skip);
+    urg_->setAngleLimitsAndCluster(angle_min_, angle_max_, cluster_);
+    urg_->setSkip(skip_);
 
-    std::string frame_id = laser_frame_id_;
-    urg_->setFrameId(frame_id);
+    urg_->setFrameId(laser_frame_id_);
     urg_->setUserLatency(default_user_latency_);
 
     return true;
@@ -488,6 +511,9 @@ void UrgNode::scanThread()
       update_reconfigure_limits();
       srv_->setCallback(std::bind(&UrgNode::reconfigure_callback, this, _1, _2));
 #endif
+
+      parameter_event_sub_ = parameters_client_->on_parameter_event(std::bind(&UrgNode::reconfigure, this, std::placeholders::_1));
+      
     }
 
     // Before starting, update the status
