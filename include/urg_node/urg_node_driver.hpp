@@ -52,6 +52,7 @@
 //#include <tf2/tf.h>  // tf header for resolving tf prefix
 #include <rclcpp/parameter_client.hpp>
 #include <rcl_interfaces/msg/parameter.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <iostream>
 
 template <class T>
@@ -83,8 +84,7 @@ public:
 private:
   bool connect();
   void reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event);
-  //bool reconfigure_callback(urg_node::URGConfig& config, int level);
-  //void update_reconfigure_limits();
+  rcl_interfaces::msg::SetParametersResult param_change_callback(const std::vector<rclcpp::Parameter> parameters);
   void calibrate_time_offset();
   void updateDiagnostics();
   void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat);

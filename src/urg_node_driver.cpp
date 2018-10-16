@@ -41,6 +41,7 @@ typedef diagnostic_updater::FrequencyStatusParam FrequencyStatusParam;
 
 UrgNode::UrgNode(const std::string & topic_name): Node(topic_name)
 {
+  
 }
 
 UrgNode::UrgNode(): Node("urg_node")
@@ -49,6 +50,7 @@ UrgNode::UrgNode(): Node("urg_node")
 
 void UrgNode::initSetup()
 {
+  
   close_diagnostics_ = true;
   close_scan_ = true;
   service_yield_ = false;
@@ -102,7 +104,7 @@ void UrgNode::initSetup()
 
   status_service_ = this->create_service<std_srvs::srv::Trigger>("update_laser_status", std::bind(&UrgNode::statusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-  // TODO: ros2 does not have latched topics yet, need to play with QOS
+  // TODO: ros2 does not have latched topics yet, need to play with QoS
   status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);  // latched=true
 
   diagnostic_updater_.reset(new diagnostic_updater::Updater);
@@ -111,6 +113,8 @@ void UrgNode::initSetup()
 
   // The parameters client to catch modification of parameters
   parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this->shared_from_this());
+
+  this->register_param_change_callback(std::bind(&UrgNode::param_change_callback, this, std::placeholders::_1));
 }
 
 UrgNode::~UrgNode()
@@ -204,35 +208,33 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
 {
   // For debug only
   std::stringstream ss;
-  ss << "\nParameter event:\n ";//new parameters:";
+  ss << "\nParameter event:\n ";
   for (auto & new_parameter : event->new_parameters) {
     ss << "\n  " << new_parameter.name;
   }
-  //ss << "\n changed parameters:";
   for (auto & changed_parameter : event->changed_parameters) {
     ss << "\n  " << changed_parameter.name;
   }
-  //ss << "\n deleted parameters:";
   for (auto & deleted_parameter : event->deleted_parameters) {
     ss << "\n  " << deleted_parameter.name;
   }
   ss << "\n";
   RCLCPP_INFO(this->get_logger(), ss.str().c_str());
 
+  // Concat the new parameters (I guess there shouldn't be any though) with the changed parameters into one vector
   std::vector<rcl_interfaces::msg::Parameter> parameter_vec = event->new_parameters;
   parameter_vec.insert(parameter_vec.end(), event->changed_parameters.begin(), event->changed_parameters.end());
 
+  // Some parameter change require to stop and start the driver to be applied
   bool restart_required(false);
 
+  // Get each parameter one by one, the param_change_callback should leave us only with valid parameters
   for(auto parameter : parameter_vec){
-    if(parameter.name.compare("ip_address") == 0){
-      //ip_address_ = parameter.value.string_value;
+    /*if(parameter.name.compare("ip_address") == 0){
+      ip_address_ = parameter.value.string_value;
 
     } else if(parameter.name.compare("ip_port") == 0){
-      //ip_port_ = parameter.value.integer_value;
-
-    } else if(parameter.name.compare("laser_frame_id") == 0){
-      laser_frame_id_ = parameter.value.string_value;
+      ip_port_ = parameter.value.integer_value;
 
     } else if(parameter.name.compare("serial_port") == 0){
       //serial_port_ = parameter.value.string_value;
@@ -248,6 +250,10 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
 
     } else if(parameter.name.compare("publish_multiecho") == 0){
       //publish_multiecho_ = parameter.value.bool_value;
+
+    } else */
+    if(parameter.name.compare("laser_frame_id") == 0){
+      laser_frame_id_ = parameter.value.string_value;
 
     } else if(parameter.name.compare("error_limit") == 0){
       error_limit_ = parameter.value.integer_value;
@@ -276,10 +282,10 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
     }
   }
 
+  // Apply the parameter changes
   if(restart_required){
     std::unique_lock<std::mutex> lock(lidar_mutex_);
     urg_->stop();
-    rclcpp::sleep_for(std::chrono::milliseconds(100));
     urg_->setAngleLimitsAndCluster(angle_min_, angle_max_, cluster_);
 
     freq_min_ = 1.0 / (urg_->getScanPeriod() * (skip_ + 1));
@@ -297,6 +303,162 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
 
   urg_->setFrameId(laser_frame_id_);
   urg_->setUserLatency(default_user_latency_);
+}
+
+rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(const std::vector<rclcpp::Parameter> parameters)
+{
+  auto result = rcl_interfaces::msg::SetParametersResult();
+  result.successful = true;
+
+  // Will concat a string explaining why it failed, should only be used for logging and user interfaces.
+  std::stringstream string_result;
+
+  for (auto parameter : parameters) {
+    rclcpp::ParameterType parameter_type = parameter.get_type();
+    /*
+    if(parameter.get_name().compare("ip_address") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_STRING){
+        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
+        result.successful = false;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a string.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("ip_port") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
+        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
+        result.successful = false;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("serial_port") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
+        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
+        result.successful = false;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("serial_baud") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
+        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
+        result.successful = false;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
+        result.successful = false;
+      }
+    } else if(parameter.get_name().compare("calibrate_time") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_BOOL){
+        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
+        result.successful = false;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a boolean.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("publish_intensity") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_BOOL){
+        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
+        result.successful = false;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a boolean.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("publish_multiecho") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_BOOL){
+        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
+        result.successful = false;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a boolean.\n";
+        result.successful = false;
+      }
+
+    } else */
+    if(parameter.get_name().compare("laser_frame_id") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_STRING){
+        result.successful &= true;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a string.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("error_limit") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
+        // TODO check if value = 0 is okay
+        if(parameter.as_int() >= 0){
+          result.successful &= true;
+        } else {
+          string_result << "The parameter " << parameter.get_name() << " should be > 0.\n";
+          result.successful = false;
+        }
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("default_user_latency") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER || parameter_type == rclcpp::ParameterType::PARAMETER_DOUBLE){
+        result.successful &= true;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer or a double.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("angle_min") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER || parameter_type == rclcpp::ParameterType::PARAMETER_DOUBLE){
+        result.successful &= true;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer or a double.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("angle_max") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER || parameter_type == rclcpp::ParameterType::PARAMETER_DOUBLE){
+        result.successful &= true;
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer or a double.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("cluster") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
+        if(parameter.as_int() >= 1 && parameter.as_int() <= 99){
+          result.successful &= true;
+        } else {
+          string_result << "The parameter " << parameter.get_name() << " should be between 1 and 99.\n";
+          result.successful = false;
+        }
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
+        result.successful = false;
+      }
+
+    } else if(parameter.get_name().compare("skip") == 0){
+      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
+        if(parameter.as_int() >= 0 && parameter.as_int() <= 9){
+          result.successful &= true;
+        } else {
+          string_result << "The parameter " << parameter.get_name() << " should be between 0 and 9.\n";
+          result.successful = false;
+        }
+      } else {
+        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
+        result.successful = false;
+      }
+
+    } else {
+      string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters.\n";
+      result.successful = false;
+    }
+  }
+  result.reason = string_result.str();
+
+  return result;
 }
 
 void UrgNode::calibrate_time_offset()
