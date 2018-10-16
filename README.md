@@ -120,7 +120,6 @@ To use ust-20lx, you need to be on the same subnet as the laser.
 The ust-20lx default ip is 192.168.0.10, so you might need to change your ip, for something on the same subnet. 
 
 On Ubuntu :
-- disable your wifi 
 - go to the network settings 
 - settings of the wired connection 
 - under IPv4, change the IPv4 method from automatic to Manual and under Addresses, set the values :
@@ -152,7 +151,7 @@ then the static publisher :
 ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 "world" "laser"
 ```
 
-then rviz :
+and rviz :
 ```
 ros2 run rviz2 rviz2
 ```
