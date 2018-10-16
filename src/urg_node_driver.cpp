@@ -89,7 +89,7 @@ void UrgNode::initSetup()
 
   status_service_ = this->create_service<std_srvs::srv::Trigger>("update_laser_status", std::bind(&UrgNode::statusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-  // TODO: ros2 does not have latched topics
+  // TODO: ros2 does not have latched topics yet, need to play with QOS
   status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);  // latched=true
 
   diagnostic_updater_.reset(new diagnostic_updater::Updater);
