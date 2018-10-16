@@ -217,28 +217,6 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
 
   // Get each parameter one by one, the param_change_callback should leave us only with valid parameters
   for(auto parameter : parameter_vec){
-    /*if(parameter.name.compare("ip_address") == 0){
-      ip_address_ = parameter.value.string_value;
-
-    } else if(parameter.name.compare("ip_port") == 0){
-      ip_port_ = parameter.value.integer_value;
-
-    } else if(parameter.name.compare("serial_port") == 0){
-      //serial_port_ = parameter.value.string_value;
-
-    } else if(parameter.name.compare("serial_baud") == 0){
-      //serial_baud_ = parameter.value.integer_value;
-
-    } else if(parameter.name.compare("calibrate_time") == 0){
-      //calibrate_time_ = parameter.value.bool_value;
-
-    } else if(parameter.name.compare("publish_intensity") == 0){
-      //publish_intensity_ = parameter.value.bool_value;
-
-    } else if(parameter.name.compare("publish_multiecho") == 0){
-      //publish_multiecho_ = parameter.value.bool_value;
-
-    } else */
     if(parameter.name.compare("laser_frame_id") == 0){
       laser_frame_id_ = parameter.value.string_value;
 
@@ -302,70 +280,7 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(const st
 
   for (auto parameter : parameters) {
     rclcpp::ParameterType parameter_type = parameter.get_type();
-    /*
-    if(parameter.get_name().compare("ip_address") == 0){
-      if(parameter_type == rclcpp::ParameterType::PARAMETER_STRING){
-        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
-        result.successful = false;
-      } else {
-        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a string.\n";
-        result.successful = false;
-      }
 
-    } else if(parameter.get_name().compare("ip_port") == 0){
-      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
-        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
-        result.successful = false;
-      } else {
-        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
-        result.successful = false;
-      }
-
-    } else if(parameter.get_name().compare("serial_port") == 0){
-      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
-        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
-        result.successful = false;
-      } else {
-        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
-        result.successful = false;
-      }
-
-    } else if(parameter.get_name().compare("serial_baud") == 0){
-      if(parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER){
-        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
-        result.successful = false;
-      } else {
-        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be an integer.\n";
-        result.successful = false;
-      }
-    } else if(parameter.get_name().compare("calibrate_time") == 0){
-      if(parameter_type == rclcpp::ParameterType::PARAMETER_BOOL){
-        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
-        result.successful = false;
-      } else {
-        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a boolean.\n";
-        result.successful = false;
-      }
-
-    } else if(parameter.get_name().compare("publish_intensity") == 0){
-      if(parameter_type == rclcpp::ParameterType::PARAMETER_BOOL){
-        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
-        result.successful = false;
-      } else {
-        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a boolean.\n";
-        result.successful = false;
-      }
-
-    } else if(parameter.get_name().compare("publish_multiecho") == 0){
-      if(parameter_type == rclcpp::ParameterType::PARAMETER_BOOL){
-        string_result << "The parameter " << parameter.get_name() << " is not part of the reconfigurable parameters yet.\n";
-        result.successful = false;
-      } else {
-        string_result << "The parameter " << parameter.get_name() << " is of the wrong type, should be a boolean.\n";
-        result.successful = false;
-      }
-
-    } else */
     if(parameter.get_name().compare("laser_frame_id") == 0){
       if(parameter_type == rclcpp::ParameterType::PARAMETER_STRING){
         result.successful &= true;
@@ -645,20 +560,10 @@ void UrgNode::scanThread()
       }
     }
 
-    // Configure limits (Must do this after creating the urgwidget)
-    //update_reconfigure_limits();
-
     if (calibrate_time_)
     {
       calibrate_time_offset();
     }
-
-    // Clear the dynamic reconfigure server
-    //srv_.reset();
-    // Spin once to de-register it's services before making a new
-    // service next.
-    //auto nh = this->shared_from_this();
-    //rclcpp::spin_some(this->shared_from_this());
 
     if (!urg_ || !rclcpp::ok)
     {
@@ -666,13 +571,6 @@ void UrgNode::scanThread()
     }
     else
     {
-#if 0
-      // Set up dynamic reconfigure
-      srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>(this));
-      // Configure limits (Must do this after creating the urgwidget)
-      update_reconfigure_limits();
-      srv_->setCallback(std::bind(&UrgNode::reconfigure_callback, this, _1, _2));
-#endif
 
       parameter_event_sub_ = parameters_client_->on_parameter_event(std::bind(&UrgNode::reconfigure, this, std::placeholders::_1));
       
