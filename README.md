@@ -23,7 +23,7 @@ cd ~/ros2_ws/src/urg/urg_node
 vcs import ../ < urg.repos
 ```
 
-Finally build
+Finally build :
 To build everything :
 ```
 cd ~/ros2_ws
