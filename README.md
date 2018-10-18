@@ -13,7 +13,11 @@ mkdir -p ~/ros2_ws/src/urg
 cd ~/ros2_ws/src/urg
 git clone -b ros2-devel https://github.com/hopetechnik/urg_node.git
 ```
-Clone dependencies
+Clone dependencies, you might need to install the vcs command to do so :
+```
+sudo apt install python3-vcstool
+```
+then clone :
 ```
 cd ~/ros2_ws/src/urg/urg_node
 vcs import ../ < urg.repos
