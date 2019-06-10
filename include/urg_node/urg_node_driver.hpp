@@ -40,8 +40,8 @@
 #include <rclcpp/rclcpp.hpp>
 //#include <dynamic_reconfigure/server.h>
 #include <laser_proc/LaserTransport.h>
-#include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_updater/publisher.h>
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 //#include <urg_node/URGConfig.h>
 #include <std_srvs/srv/trigger.hpp>
