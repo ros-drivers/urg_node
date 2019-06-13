@@ -162,13 +162,13 @@ public:
 
   bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
 
-  bool setSkip(int skip);
+  void setSkip(int skip);
 
   rclcpp::Duration computeLatency(size_t num_measurements);
 
-  bool grabScan(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+  bool grabScan(sensor_msgs::msg::LaserScan& msg);
 
-  bool grabScan(const sensor_msgs::msg::MultiEchoLaserScan::SharedPtr msg);
+  bool grabScan(sensor_msgs::msg::MultiEchoLaserScan& msg);
 
   bool getAR00Status(URGStatus& status);
 
