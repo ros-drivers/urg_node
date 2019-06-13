@@ -235,10 +235,10 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan& msg)
     ros2_time::Time stampTime;
     stampTime.fromNSec((uint64_t)system_time_stamp);
     stampTime = stampTime + system_latency_ + user_latency_ + getAngularTimeOffset();
-    msg->header.stamp.sec = stampTime.toSec();
-    msg->header.stamp.nanosec = stampTime.toNSec();
+    msg.header.stamp.sec = stampTime.toSec();
+    msg.header.stamp.nanosec = stampTime.toNSec();
   }
-  builtin_interfaces::msg::Time stampTime = rclcpp::Time(system_time_stamp) + system_latency_ + user_latency_ + getAngularTimeOffset();
+  builtin_interfaces::msg::Time stampTime = rclcpp::Time(static_cast<int64_t>(system_time_stamp)) + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg.header.stamp = stampTime;
   msg.ranges.resize(num_beams);
 
