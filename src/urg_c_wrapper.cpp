@@ -36,7 +36,7 @@
 namespace urg_node
 {
 
-URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho) : logger_(rclcpp::get_logger("urg_c_wrapper")), system_latency_(0), user_latency_(0)
+URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger) : logger_(logger), system_latency_(0), user_latency_(0)
 {
   // Store for comprehensive diagnostics
   ip_address_ = ip_address;
@@ -61,7 +61,7 @@ URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool&
 }
 
 URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
-    bool& using_intensity, bool& using_multiecho) : logger_(rclcpp::get_logger("urg_c_wrapper")), system_latency_(0), user_latency_(0)
+    bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger) : logger_(logger), system_latency_(0), user_latency_(0)
 {
   // Store for comprehensive diagnostics
   serial_baud_ = serial_baud;
@@ -338,8 +338,7 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   // Get the response
   std::string response = sendCommand(str_cmd);
 
-  std::cerr << "Full response: " << response << std::endl;
-  //RCLCPP_DEBUG(log, "Full response: %s", response.c_str());
+  RCLCPP_DEBUG(logger_, "Full response: %s", response.c_str());
 
   // Strip STX and ETX before calculating the CRC.
   response.erase(0, 1);
@@ -358,41 +357,35 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
 
   if (checksum_result != crc)
   {
-    std::cerr << "Received bad frame, incorrect checksum" << std::endl;
-    //RCLCPP_WARN(log, "Received bad frame, incorrect checksum");
+    RCLCPP_WARN(logger_, "Received bad frame, incorrect checksum");
     return false;
   }
 
   // Debug output reponse up to scan data.
-  std::cerr << "Response: " << response.substr(0, 41) << std::endl;
-  //RCLCPP_DEBUG(log, "Response: %s", response.substr(0, 41).c_str());
+  RCLCPP_DEBUG(logger_, "Response: %s", response.substr(0, 41).c_str());
   // Decode the result if crc checks out.
   // Grab the status
   ss.clear();
-  std::cerr << "Status " << response.substr(8, 2) << std::endl;
-  //RCLCPP_DEBUG(log, "Status: %s", response.substr(8, 2).c_str());
+  RCLCPP_DEBUG(logger_, "Status: %s", response.substr(8, 2).c_str());
   ss << response.substr(8, 2);  // Status is 8th position 2 chars.
   ss >> std::hex >> status.status;
 
   if (status.status != 0)
   {
-    std::cerr << "Received bad status" << std::endl;
-    //RCLCPP_WARN(log, "Received bad status");
+    RCLCPP_WARN(logger_, "Received bad status");
     return false;
   }
 
   // Grab the operating mode
   ss.clear();
-  std::cerr << "Operating mode " << response.substr(10, 1) << std::endl;
-  //RCLCPP_DEBUG(log, "Operating mode: %s", response.substr(10, 1).c_str());
+  RCLCPP_DEBUG(logger_, "Operating mode: %s", response.substr(10, 1).c_str());
   ss << response.substr(10, 1);
   ss >> std::hex >> status.operating_mode;
 
   // Grab the area number
   ss.clear();
   ss << response.substr(11, 2);
-  std::cerr << "Area Number " << response.substr(11, 2) << std::endl;
-  //RCLCPP_DEBUG(log, "Area Number: %s", response.substr(11, 2).c_str());
+  RCLCPP_DEBUG(logger_, "Area Number: %s", response.substr(11, 2).c_str());
   ss >> std::hex >> status.area_number;
   // Per documentation add 1 to offset area number
   status.area_number++;
@@ -400,16 +393,14 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   // Grab the Error Status
   ss.clear();
   ss << response.substr(13, 1);
-  std::cerr << "Error status " << response.substr(13, 1) << std::endl;
-  //RCLCPP_DEBUG(log, "Error status: %s", response.substr(13, 1).c_str());
+  RCLCPP_DEBUG(logger_, "Error status: %s", response.substr(13, 1).c_str());
   ss >> std::hex >> status.error_status;
 
 
   // Grab the error code
   ss.clear();
   ss << response.substr(14, 2);
-  std::cerr << "Error code " << std::hex << response.substr(14, 2) << std::endl;
-  //RCLCPP_DEBUG(log, "Error code: %s", response.substr(14, 2).c_str());
+  RCLCPP_DEBUG(logger_, "Error code: %s", response.substr(14, 2).c_str());
   ss >> std::hex >> status.error_code;
   // Offset by 0x40 is non-zero as per documentation
   if (status.error_code != 0)
@@ -420,8 +411,7 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   // Get the lockout status
   ss.clear();
   ss << response.substr(16, 1);
-  std::cerr << "Lockout " << response.substr(16, 1) << std::endl;
-  //RCLCPP_DEBUG(log, "Lockout: %s", response.substr(16, 1).c_str());
+  RCLCPP_DEBUG(logger_, "Lockout: %s", response.substr(16, 1).c_str());
   ss >> std::hex >> status.lockout_status;
 
   return true;
@@ -438,8 +428,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
   // Get the response
   std::string response = sendCommand(str_cmd);
 
-  std::cerr << "Full response: " << response << std::endl;
-  //RCLCPP_DEBUG(log, "Full response: %s", response.c_str());
+  RCLCPP_DEBUG(logger_, "Full response: %s", response.c_str());
 
   // Strip STX and ETX before calculating the CRC.
   response.erase(0, 1);
@@ -458,8 +447,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
 
   if (checksum_result != crc)
   {
-    std::cerr << "Received bad frame, incorrect checksum" << std::endl;
-    //RCLCPP_WARN(log, "Received bad frame, incorrect checksum");
+    RCLCPP_WARN(logger_, "Received bad frame, incorrect checksum");
     return false;
   }
 
@@ -467,15 +455,13 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
   // Grab the status
   uint16_t status = 0;
   ss.clear();
-  std::cerr << "Status " << response.substr(8, 2) << std::endl;
-  //RCLCPP_DEBUG(log, "Status: %s", response.substr(8, 2).c_str());
+  RCLCPP_DEBUG(logger_, "Status: %s", response.substr(8, 2).c_str());
   ss << response.substr(8, 2);  // Status is 8th position 2 chars.
   ss >> std::hex >> status;
 
   if (status != 0)
   {
-    std::cerr << "Received bad status" << std::endl;
-    //RCLCPP_WARN(log, "Received bad status");
+    RCLCPP_WARN(logger_, "Received bad status");
     return false;
   }
 
@@ -505,8 +491,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
     ss.clear();
     ss << msg.substr(offset_pos + 8, 4);  // "Step" is offset 8 from beginning 4 chars long.
     ss >> std::hex >> step;
-    std::cerr << i << " Area: " << area << " Distance: " << distance << " Step: " << step << std::endl;
-    //RCLCPP_DEBUG(log, "%d Area: %d Distance: %d Step: %d", i, area, distance, step);
+    RCLCPP_DEBUG(logger_, "%d Area: %d Distance: %d Step: %d", i, area, distance, step);
 
     UrgDetectionReport r;
     r.area = area;
@@ -528,8 +513,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
       // are empty.
       if (iter - 1 == reports.begin())
       {
-        std::cerr << "All reports are empty, no detections available." << std::endl;
-        //RCLCPP_DEBUG(log, "All reports are empty, no detections available.");
+        RCLCPP_DEBUG(logger_, "All reports are empty, no detections available.");
         report.status = status;
         return false;
       }
@@ -609,8 +593,7 @@ std::string URGCWrapper::sendCommand(std::string cmd)
     total_read_len += read_len;
     if (read_len <= 0)
     {
-      std::cerr << "Read socket failed: " << strerror(errno) << std::endl;
-      //RCLCPP_ERROR(log, "Read socket failed: %s", strerror(errno));
+      RCLCPP_ERROR(logger_, "Read socket failed: %s", strerror(errno));
       result.clear();
       return result;
     }
@@ -621,8 +604,7 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   std::stringstream ss;
   ss << recv_header.substr(1, 4);
   ss >> std::hex >> expected_read;
-  std::cerr << "Read len " << expected_read << std::endl;
-  //RCLCPP_DEBUG(log, "Read len: %lu bytes", expected_read);
+  RCLCPP_DEBUG(logger_, "Read len: %lu bytes", expected_read);
 
   // Already read len of 5, take that out.
   uint32_t arr_size = expected_read - 5;
@@ -630,14 +612,12 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   // based on the currently known messages on the hokuyo documentations
   if (arr_size > 10000)
   {
-    std::cerr << "Buffer creation bounds exceeded, shouldn't allocate: " << arr_size << " bytes" << std::endl;
-    //RCLCPP_ERROR(log, "Buffer creation bounds exceeded, shouldn't allocate: %lu bytes", arr_size);
+    RCLCPP_ERROR(logger_, "Buffer creation bounds exceeded, shouldn't allocate: %lu bytes", arr_size);
     result.clear();
     return result;
   }
 
-  std::cerr << "Creating buffer read of arr_Size: " << arr_size << std::endl;
-  //RCLCPP_DEBUG(log, "Creating buffer read of arr_Size: %lu bytes", arr_size);
+  RCLCPP_DEBUG(logger_, "Creating buffer read of arr_Size: %lu bytes", arr_size);
   // Create buffer space for read.
   boost::shared_array<char> data;
   data.reset(new char[arr_size]);
@@ -647,18 +627,15 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   read_len = 0;
   expected_read = arr_size;
 
-  std::cerr << "Expected body size: " << expected_read << std::endl;
-  //RCLCPP_DEBUG(log, "Expected body size: %lu bytes", expected_read);
+  RCLCPP_DEBUG(logger_, "Expected body size: %lu bytes", expected_read);
   while (total_read_len < expected_read)
   {
     read_len = read(sock, data.get()+total_read_len, expected_read - total_read_len);
     total_read_len += read_len;
-    std::cerr << "Read in after header " << read_len << std::endl;
-    //RCLCPP_DEBUG(log, "Read in after header: %lu bytes", read_len);
+    RCLCPP_DEBUG(logger_, "Read in after header: %lu bytes", read_len);
     if (read_len <= 0)
     {
-      std::cerr << "Read socket failed: " << strerror(errno) << std::endl;
-      //RCLCPP_DEBUG(log, "Read socket failed: %s", strerror(errno));
+      RCLCPP_DEBUG(logger_, "Read socket failed: %s", strerror(errno));
       result.clear();
       return result;
     }

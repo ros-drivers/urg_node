@@ -97,10 +97,10 @@ class URGCWrapper
 {
 public:
   URGCWrapper(const std::string& ip_address, const int ip_port,
-      bool& using_intensity, bool& using_multiecho);
+      bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
   URGCWrapper(const int serial_baud, const std::string& serial_port,
-      bool& using_intensity, bool& using_multiecho);
+      bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
   ~URGCWrapper();
 

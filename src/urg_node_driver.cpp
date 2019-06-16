@@ -174,7 +174,6 @@ void UrgNode::statusCallback(
     const std_srvs::srv::Trigger::Response::SharedPtr res)
 {
   RCLCPP_INFO(this->get_logger(), "Got update lidar status callback");
-  std::cerr << "Got update lidar status callback" << std::endl;
   res->success = false;
   res->message = "Laser not ready";
 
@@ -475,12 +474,12 @@ bool UrgNode::connect()
     if (!ip_address_.empty())
     {
       urg_.reset(new urg_node::URGCWrapper(ip_address_, ip_port_,
-          publish_intensity_, publish_multiecho_));
+          publish_intensity_, publish_multiecho_, this->get_logger()));
     }
     else
     {
       urg_.reset(new urg_node::URGCWrapper(serial_baud_, serial_port_,
-          publish_intensity_, publish_multiecho_));
+          publish_intensity_, publish_multiecho_, this->get_logger()));
     }
 
     std::stringstream ss;
