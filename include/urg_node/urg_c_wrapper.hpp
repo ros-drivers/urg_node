@@ -97,10 +97,10 @@ class URGCWrapper
 {
 public:
   URGCWrapper(const std::string& ip_address, const int ip_port,
-      bool& using_intensity, bool& using_multiecho, bool synchronize_time);
+      bool& using_intensity, bool& using_multiecho);
 
   URGCWrapper(const int serial_baud, const std::string& serial_port,
-      bool& using_intensity, bool& using_multiecho, bool synchronize_time);
+      bool& using_intensity, bool& using_multiecho);
 
   ~URGCWrapper();
 
@@ -175,7 +175,7 @@ public:
   bool getDL00Status(UrgDetectionReport& report);
 
 private:
-  void initialize(bool& using_intensity, bool& using_multiecho, bool synchronize_time);
+  void initialize(bool& using_intensity, bool& using_multiecho);
 
   bool isIntensitySupported();
 
@@ -186,14 +186,6 @@ private:
   rclcpp::Duration getNativeClockOffset(size_t num_measurements);
 
   rclcpp::Duration getTimeStampOffset(size_t num_measurements);
-
-  /**
-   * @brief Get synchronized time stamp using hardware clock
-   * @param time_stamp The current hardware time stamp.
-   * @param system_time_stamp The current system time stamp.
-   * @returns ros::Time stamp representing synchronized time
-   */
-  ros::Time getSynchronizedTime(long time_stamp, long long system_time_stamp);
 
   /**
    * @brief Set the Hokuyo URG-04LX from SCIP 1.1 mode to SCIP 2.0 mode.
@@ -217,6 +209,9 @@ private:
    */
   std::string sendCommand(std::string cmd);
 
+  /// Logger object used for debug info
+  rclcpp::Logger logger_;
+
   std::string frame_id_;  ///< Output frame_id for each laserscan.
 
   urg_t urg_;
@@ -236,8 +231,6 @@ private:
   rclcpp::Duration system_latency_;
   rclcpp::Duration user_latency_;
 
-  // used for clock synchronziation
-  bool synchronize_time_;
   double hardware_clock_;
   long last_hardware_time_stamp_;
   double hardware_clock_adj_;

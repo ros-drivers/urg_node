@@ -36,7 +36,7 @@
 namespace urg_node
 {
 
-URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho) : system_latency_(0), user_latency_(0)
+URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho) : logger_(rclcpp::get_logger("urg_c_wrapper")), system_latency_(0), user_latency_(0)
 {
   // Store for comprehensive diagnostics
   ip_address_ = ip_address;
@@ -57,11 +57,11 @@ URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool&
     throw std::runtime_error(ss.str());
   }
 
-  initialize(using_intensity, using_multiecho, synchronize_time);
+  initialize(using_intensity, using_multiecho);
 }
 
 URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
-    bool& using_intensity, bool& using_multiecho) : system_latency_(0), user_latency_(0)
+    bool& using_intensity, bool& using_multiecho) : logger_(rclcpp::get_logger("urg_c_wrapper")), system_latency_(0), user_latency_(0)
 {
   // Store for comprehensive diagnostics
   serial_baud_ = serial_baud;
@@ -84,10 +84,10 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
     throw std::runtime_error(ss.str());
   }
 
-  initialize(using_intensity, using_multiecho, synchronize_time);
+  initialize(using_intensity, using_multiecho);
 }
 
-void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho, bool synchronize_time)
+void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
 {
   int urg_data_size = urg_max_data_size(&urg_);
   // urg_max_data_size can return a negative, error code value. Resizing based on this value will fail.
@@ -126,7 +126,6 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho, bool 
   cluster_ = 1;
   skip_ = 0;
 
-  synchronize_time_ = synchronize_time;
   hardware_clock_ = 0.0;
   last_hardware_time_stamp_ = 0;
   hardware_clock_adj_ = 0.0;
@@ -226,18 +225,6 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan& msg)
   }
 
   // Fill scan
-  if (synchronize_time_)
-  {
-    msg.header.stamp = getSynchronizedTime(time_stamp, system_time_stamp);
-  }
-  else
-  {
-    ros2_time::Time stampTime;
-    stampTime.fromNSec((uint64_t)system_time_stamp);
-    stampTime = stampTime + system_latency_ + user_latency_ + getAngularTimeOffset();
-    msg.header.stamp.sec = stampTime.toSec();
-    msg.header.stamp.nanosec = stampTime.toNSec();
-  }
   builtin_interfaces::msg::Time stampTime = rclcpp::Time(static_cast<int64_t>(system_time_stamp)) + system_latency_ + user_latency_ + getAngularTimeOffset();
   msg.header.stamp = stampTime;
   msg.ranges.resize(num_beams);
@@ -580,7 +567,7 @@ bool URGCWrapper::setToSCIP2()
   if (n > 0 && strcmp(buffer, "SCIP2.0") == 0
     && urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)
   {
-    ROS_DEBUG_STREAM("Set sensor to SCIP 2.0.");
+    RCLCPP_DEBUG(logger_, "Set sensor to SCIP 2.0.");
     return true;
   }
   return false;
@@ -1067,49 +1054,5 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
-}
-
-ros::Time URGCWrapper::getSynchronizedTime(long time_stamp, long long system_time_stamp)
-{
-  ros::Time stamp, system_time;
-  system_time.fromNSec((uint64_t)system_time_stamp);
-  stamp = system_time;
-
-  const uint32_t t1 = static_cast<uint32_t>(time_stamp);
-  const uint32_t t0 = static_cast<uint32_t>(last_hardware_time_stamp_);
-  // hokuyo uses a 24-bit counter, so mask out irrelevant bits
-  const uint32_t mask = 0x00ffffff;
-  double delta = static_cast<double>(mask&(t1-t0))/1000.0;
-  hardware_clock_ += delta;
-  double cur_adj = stamp.toSec() - hardware_clock_;
-  if (adj_count_ > 0)
-  {
-    hardware_clock_adj_ = adj_alpha_*cur_adj+(1.0-adj_alpha_)*hardware_clock_adj_;
-  }
-  else
-  {
-    // Initialize the EMA
-    hardware_clock_adj_ = cur_adj;
-  }
-  adj_count_++;
-  last_hardware_time_stamp_ = time_stamp;
-
-  // Once hardware clock is synchronized, use it. Otherwise just return the
-  // input system_time_stamp as ros::Time.
-  if (adj_count_ > 100)
-  {
-    stamp.fromSec(hardware_clock_+hardware_clock_adj_);
-    // If the time error is large a clock warp has occurred.
-    // Reset the EMA and use the system time.
-    if (fabs((stamp-system_time).toSec()) > 0.1)
-    {
-        adj_count_ = 0;
-        hardware_clock_ = 0.0;
-        last_hardware_time_stamp_ = 0;
-        stamp = system_time;
-        ROS_INFO("%s: detected clock warp, reset EMA", __func__);
-    }
-  }
-  return stamp;
 }
 }  // namespace urg_node
