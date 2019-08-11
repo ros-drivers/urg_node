@@ -38,10 +38,9 @@ int main(int argc, char **argv)
   // Initialize node and nodehandles
   rclcpp::init(argc, argv);
   auto node = std::make_shared<urg_node::UrgNode>("urg_node");
-  node->initSetup();
 
   // Run the urg node
-  node->run();
+  //node->run();
 
   rclcpp::spin(node);
 

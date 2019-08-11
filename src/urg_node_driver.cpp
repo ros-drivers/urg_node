@@ -39,43 +39,55 @@ namespace urg_node
 // Useful typedefs
 typedef diagnostic_updater::FrequencyStatusParam FrequencyStatusParam;
 
-UrgNode::UrgNode(const std::string & topic_name): Node(topic_name)
+UrgNode::UrgNode(const std::string & node_name)
+: Node(node_name),
+  diagnostic_updater_(this),
+  close_diagnostics_(true),
+  close_scan_(true),
+  service_yield_(true),
+  error_code_(0),
+  lockout_status_(false),
+  ip_address_(""),
+  ip_port_(10940),
+  laser_frame_id_("laser"),
+  serial_port_("/dev/cu.usbmodem141101"),
+  serial_baud_(115200),
+  calibrate_time_(false),
+  publish_intensity_(false),
+  publish_multiecho_(false),
+  error_limit_(4),
+  diagnostics_tolerance_(0.05),
+  diagnostics_window_time_(5.0),
+  detailed_status_(false),
+  default_user_latency_(0.0),
+  angle_min_(-3.14),
+  angle_max_(3.14),
+  skip_(0),
+  cluster_(1)
 {
-  
-}
-
-UrgNode::UrgNode(): Node("urg_node")
-{
+  initSetup();
 }
 
 void UrgNode::initSetup()
 {
-  
-  close_diagnostics_ = true;
-  close_scan_ = true;
-  service_yield_ = false;
-
-  error_code_ = 0;
-  lockout_status_ = false;
-
   // Get parameters so we can change these later.
-  this->get_parameter_or("ip_address", ip_address_, std::string(""));
-  this->get_parameter_or("ip_port", ip_port_, 10940);
-  this->get_parameter_or("laser_frame_id", laser_frame_id_, std::string("laser"));
-  this->get_parameter_or("serial_port", serial_port_, std::string("/dev/ttyACM0"));
-  this->get_parameter_or("serial_baud", serial_baud_, 115200);
-  this->get_parameter_or("calibrate_time", calibrate_time_, false);
-  this->get_parameter_or("publish_intensity", publish_intensity_, false);
-  this->get_parameter_or("publish_multiecho", publish_multiecho_, false);
-  this->get_parameter_or("error_limit", error_limit_, 4);
-  this->get_parameter_or("diagnostics_tolerance", diagnostics_tolerance_, 0.05);
-  this->get_parameter_or("diagnostics_window_time", diagnostics_window_time_, 5.0);
-  this->get_parameter_or("get_detailed_status", detailed_status_, false);
-  this->get_parameter_or("default_user_latency", default_user_latency_, 0.0);
-  this->get_parameter_or("angle_min", angle_min_, -3.14);
-  this->get_parameter_or("angle_max", angle_max_, 3.14);
-  this->get_parameter_or("skip", skip_, 0);
-  this->get_parameter_or("cluster", cluster_, 1);
+  this->declare_parameter<std::string>("ip_address", ip_address_);
+  this->declare_parameter<int>("ip_port", ip_port_);
+  this->declare_parameter<std::string>("laser_frame_id", laser_frame_id_);
+  this->declare_parameter<std::string>("serial_port", serial_port_);
+  this->declare_parameter<int>("serial_baud", serial_baud_);
+  this->declare_parameter<bool>("calibrate_time", calibrate_time_);
+  this->declare_parameter<bool>("publish_intensity", publish_intensity_);
+  this->declare_parameter<bool>("publish_multiecho", publish_multiecho_);
+  this->declare_parameter<int>("error_limit", error_limit_);
+  this->declare_parameter<double>("diagnostics_tolerance", diagnostics_tolerance_);
+  this->declare_parameter<double>("diagnostics_window_time", diagnostics_window_time_);
+  this->declare_parameter<bool>("get_detailed_status", detailed_status_);
+  this->declare_parameter<double>("default_user_latency", default_user_latency_);
+  this->declare_parameter<double>("angle_min", angle_min_);
+  this->declare_parameter<double>("angle_max", angle_max_);
+  this->declare_parameter<int>("skip", skip_);
+  this->declare_parameter<int>("cluster", cluster_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_)
@@ -88,19 +100,18 @@ void UrgNode::initSetup()
     laser_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", 20);
   }
 
-  status_service_ = this->create_service<std_srvs::srv::Trigger>("update_laser_status", std::bind(&UrgNode::statusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  status_service_ = this->create_service<std_srvs::srv::Trigger>(
+      "update_laser_status",
+      std::bind(&UrgNode::statusCallback, this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
   // TODO: ros2 does not have latched topics yet, need to play with QoS
   status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);  // latched=true
 
-  diagnostic_updater_.reset(new diagnostic_updater::Updater);
-  diagnostic_updater_->add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
-
-
-  // The parameters client to catch modification of parameters
-  parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this->shared_from_this());
+  diagnostic_updater_.add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
 
   this->set_on_parameters_set_callback(std::bind(&UrgNode::param_change_callback, this, std::placeholders::_1));
+
 }
 
 UrgNode::~UrgNode()
@@ -390,7 +401,7 @@ void UrgNode::updateDiagnostics()
 {
   while (!close_diagnostics_)
   {
-    diagnostic_updater_->update();
+    diagnostic_updater_.update();
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 }
@@ -512,9 +523,9 @@ bool UrgNode::connect()
     protocol_version_ = urg_->getProtocolVersion();
     device_id_ = urg_->getDeviceID();
 
-    if (diagnostic_updater_ && urg_)
+    if (urg_)
     {
-      diagnostic_updater_->setHardwareID(urg_->getDeviceID());
+      diagnostic_updater_.setHardwareID(urg_->getDeviceID());
     }
 
     // Configure initial properties (in place of initial dynamic reconfigure)
@@ -568,12 +579,6 @@ void UrgNode::scanThread()
     if (!urg_ || !rclcpp::ok())
     {
       continue;
-    }
-    else
-    {
-
-      parameter_event_sub_ = parameters_client_->on_parameter_event(std::bind(&UrgNode::reconfigure, this, std::placeholders::_1));
-      
     }
 
     // Before starting, update the status
@@ -686,22 +691,22 @@ void UrgNode::run()
   if (publish_multiecho_)
   {
     echoes_freq_.reset(new diagnostic_updater::HeaderlessTopicDiagnostic("Laser Echoes",
-          *diagnostic_updater_,
+          diagnostic_updater_,
           FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance_, diagnostics_window_time_)));
   }
   else
   {
     laser_freq_.reset(new diagnostic_updater::HeaderlessTopicDiagnostic("Laser Scan",
-          *diagnostic_updater_,
+          diagnostic_updater_,
           FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance_, diagnostics_window_time_)));
   }
 
-  // Now that we are setup, kick off diagnostics.
-  close_diagnostics_ = false;
-  diagnostics_thread_ = std::thread(std::bind(&UrgNode::updateDiagnostics, this));
+  //// Now that we are setup, kick off diagnostics.
+  //close_diagnostics_ = false;
+  //diagnostics_thread_ = std::thread(std::bind(&UrgNode::updateDiagnostics, this));
 
   // Start scanning now that everything is configured.
   close_scan_ = false;
-  scan_thread_ = std::thread(std::bind(&UrgNode::scanThread, this));
+  //scan_thread_ = std::thread(std::bind(&UrgNode::scanThread, this));
 }
 }  // namespace urg_node

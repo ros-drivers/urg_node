@@ -55,17 +55,14 @@
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <iostream>
 
-template <class T>
-rclcpp::Parameter get_param (rclcpp::Node* node, std::string param_name, T default_value);
-
 namespace urg_node
 {
 class UrgNode : public rclcpp::Node
 {
 public:
-  UrgNode();
-  explicit UrgNode(const std::string &topic_name);
-  ~UrgNode();
+  explicit UrgNode(const std::string & node_name);
+
+  virtual ~UrgNode();
 
   /**
    * @brief Start's the nodes threads to run the lidar.
@@ -78,7 +75,7 @@ public:
    * @return True on update successful, false otherwise.
    */
   bool updateStatus();
-  
+
   void initSetup();
 
 private:
@@ -99,11 +96,11 @@ private:
   std::thread diagnostics_thread_;
   std::thread scan_thread_;
 
-  std::shared_ptr<urg_node::URGCWrapper> urg_;
+  std::unique_ptr<urg_node::URGCWrapper> urg_;
   //std::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
-  std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
-  std::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
-  std::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
+  diagnostic_updater::Updater diagnostic_updater_;
+  std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
+  std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
 
   std::mutex lidar_mutex_;
 
@@ -159,7 +156,6 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
 
   /** The parameters client to catch modification of parameters during runtime */
-  rclcpp::AsyncParametersClient::SharedPtr parameters_client_;
   rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;
 };
 
