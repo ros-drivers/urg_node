@@ -36,23 +36,29 @@
 namespace urg_node
 {
 
-URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger) : logger_(logger), system_latency_(0), user_latency_(0)
+URGCWrapper::URGCWrapper(
+  const EthernetConnection & connection, bool & using_intensity,
+  bool & using_multiecho, const rclcpp::Logger & logger)
+: ip_address_(connection.ip_address),
+  ip_port_(connection.ip_port),
+  serial_port_(""),
+  serial_baud_(0),
+  use_intensity_(using_intensity),
+  use_multiecho_(using_multiecho),
+  system_latency_(0),
+  user_latency_(0),
+  logger_(logger)
 {
-  // Store for comprehensive diagnostics
-  ip_address_ = ip_address;
-  ip_port_ = ip_port;
-  serial_port_ = "";
-  serial_baud_ = 0;
+  (void) adj_alpha_;
 
-  long baudrate_or_port = (long)ip_port;
-  const char *device = ip_address.c_str();
+  long baudrate_or_port = (long)ip_port_;
+  const char * device = ip_address_.c_str();
 
   int result = urg_open(&urg_, URG_ETHERNET, device, baudrate_or_port);
-  if (result < 0)
-  {
+  if (result < 0) {
     std::stringstream ss;
     ss << "Could not open network Hokuyo:\n";
-    ss << ip_address << ":" << ip_port << "\n";
+    ss << ip_address_ << ":" << ip_port_ << "\n";
     ss << urg_error(&urg_);
     throw std::runtime_error(ss.str());
   }
@@ -60,24 +66,29 @@ URGCWrapper::URGCWrapper(const std::string& ip_address, const int ip_port, bool&
   initialize(using_intensity, using_multiecho);
 }
 
-URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
-    bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger) : logger_(logger), system_latency_(0), user_latency_(0)
+URGCWrapper::URGCWrapper(
+  const SerialConnection & connection,
+  bool & using_intensity, bool & using_multiecho, const rclcpp::Logger & logger)
+: ip_address_(""),
+  ip_port_(0),
+  serial_port_(connection.serial_port),
+  serial_baud_(connection.serial_baud),
+  use_intensity_(using_intensity),
+  use_multiecho_(using_multiecho),
+  system_latency_(0),
+  user_latency_(0),
+  logger_(logger)
 {
-  // Store for comprehensive diagnostics
-  serial_baud_ = serial_baud;
-  serial_port_ = serial_port;
-  ip_address_ = "";
-  ip_port_ = 0;
+  (void) adj_alpha_;
 
-  long baudrate_or_port = (long)serial_baud;
-  const char *device = serial_port.c_str();
+  long baudrate_or_port = (long)serial_baud_;
+  const char * device = serial_port_.c_str();
 
   int result = urg_open(&urg_, URG_SERIAL, device, baudrate_or_port);
-  if (result < 0)
-  {
+  if (result < 0) {
     std::stringstream ss;
     ss << "Could not open serial Hokuyo:\n";
-    ss << serial_port << " @ " << serial_baud << "\n";
+    ss << serial_port_ << " @ " << serial_baud_ << "\n";
     ss << urg_error(&urg_);
     stop();
     urg_close(&urg_);
@@ -87,20 +98,16 @@ URGCWrapper::URGCWrapper(const int serial_baud, const std::string& serial_port,
   initialize(using_intensity, using_multiecho);
 }
 
-void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
+void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
 {
   int urg_data_size = urg_max_data_size(&urg_);
   // urg_max_data_size can return a negative, error code value. Resizing based on this value will fail.
-  if (urg_data_size < 0)
-  {
+  if (urg_data_size < 0) {
     // This error can be caused by a URG-04LX in SCIP 1.1 mode, so we try to set SCIP 2.0 mode.
-    if (setToSCIP2() && urg_max_data_size(&urg_) >= 0)
-    {
+    if (setToSCIP2() && urg_max_data_size(&urg_) >= 0) {
       // If setting SCIP 2.0 was successful, we set urg_data_size to the correct value.
       urg_data_size = urg_max_data_size(&urg_);
-    }
-    else
-    {
+    } else {
       urg_.last_errno = urg_data_size;
       std::stringstream ss;
       ss << "Could not initialize Hokuyo:\n";
@@ -112,8 +119,7 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
   }
   // Ocassionally urg_max_data_size returns a string pointer, make sure we don't allocate too much space,
   // the current known max is 1440 steps
-  if (urg_data_size  > 5000)
-  {
+  if (urg_data_size > 5000) {
     urg_data_size = 5000;
   }
   data_.resize(urg_data_size * URG_MAX_ECHO);
@@ -131,13 +137,11 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
   hardware_clock_adj_ = 0.0;
   adj_count_ = 0;
 
-  if (using_intensity)
-  {
+  if (using_intensity) {
     using_intensity = isIntensitySupported();
   }
 
-  if (using_multiecho)
-  {
+  if (using_multiecho) {
     using_multiecho = isMultiEchoSupported();
   }
 
@@ -145,35 +149,26 @@ void URGCWrapper::initialize(bool& using_intensity, bool& using_multiecho)
   use_multiecho_ = using_multiecho;
 
   measurement_type_ = URG_DISTANCE;
-  if (use_intensity_ && use_multiecho_)
-  {
+  if (use_intensity_ && use_multiecho_) {
     measurement_type_ = URG_MULTIECHO_INTENSITY;
-  }
-  else if (use_intensity_)
-  {
+  } else if (use_intensity_) {
     measurement_type_ = URG_DISTANCE_INTENSITY;
-  }
-  else if (use_multiecho_)
-  {
+  } else if (use_multiecho_) {
     measurement_type_ = URG_MULTIECHO;
   }
 }
 
 void URGCWrapper::start()
 {
-  if (!started_)
-  {
+  if (!started_) {
     int result = urg_start_measurement(&urg_, measurement_type_, 0, skip_);
-    if (result < 0)
-    {
+    if (result < 0) {
       std::stringstream ss;
       ss << "Could not start Hokuyo measurement:\n";
-      if (use_intensity_)
-      {
+      if (use_intensity_) {
         ss << "With Intensity" << "\n";
       }
-      if (use_multiecho_)
-      {
+      if (use_multiecho_) {
         ss << "With MultiEcho" << "\n";
       }
       ss << urg_error(&urg_);
@@ -195,7 +190,7 @@ URGCWrapper::~URGCWrapper()
   urg_close(&urg_);
 }
 
-bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan& msg)
+bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
 {
   msg.header.frame_id = frame_id_;
   msg.angle_min = getAngleMin();
@@ -211,41 +206,33 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan& msg)
   long time_stamp = 0;
   unsigned long long system_time_stamp = 0;
 
-  if (use_intensity_)
-  {
-    num_beams = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
-  }
-  else
-  {
+  if (use_intensity_) {
+    num_beams = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
+        &system_time_stamp);
+  } else {
     num_beams = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
-  if (num_beams <= 0)
-  {
+  if (num_beams <= 0) {
     return false;
   }
 
   // Fill scan
-  builtin_interfaces::msg::Time stampTime = rclcpp::Time(static_cast<int64_t>(system_time_stamp)) + system_latency_ + user_latency_ + getAngularTimeOffset();
+  builtin_interfaces::msg::Time stampTime = rclcpp::Time(static_cast<int64_t>(system_time_stamp)) +
+    system_latency_ + user_latency_ + getAngularTimeOffset();
   msg.header.stamp = stampTime;
   msg.ranges.resize(num_beams);
 
-  if (use_intensity_)
-  {
+  if (use_intensity_) {
     msg.intensities.resize(num_beams);
   }
 
-  for (int i = 0; i < num_beams; i++)
-  {
-    if (data_[(i) + 0] != 0)
-    {
+  for (int i = 0; i < num_beams; i++) {
+    if (data_[(i) + 0] != 0) {
       msg.ranges[i] = static_cast<float>(data_[i]) / 1000.0;
-      if (use_intensity_)
-      {
+      if (use_intensity_) {
         msg.intensities[i] = intensity_[i];
       }
-    }
-    else
-    {
+    } else {
       msg.ranges[i] = std::numeric_limits<float>::quiet_NaN();
       continue;
     }
@@ -253,7 +240,7 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan& msg)
   return true;
 }
 
-bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan& msg)
+bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
 {
   msg.header.frame_id = frame_id_;
   msg.angle_min = getAngleMin();
@@ -269,56 +256,45 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan& msg)
   long time_stamp = 0;
   unsigned long long system_time_stamp;
 
-  if (use_intensity_)
-  {
-    num_beams = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
-  }
-  else
-  {
+  if (use_intensity_) {
+    num_beams = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
+        &system_time_stamp);
+  } else {
     num_beams = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
-  if (num_beams <= 0)
-  {
+  if (num_beams <= 0) {
     return false;
   }
 
   // Fill scan (uses vector.reserve wherever possible to avoid initalization and unecessary memory expansion)
-  builtin_interfaces::msg::Time stampTime = rclcpp::Time(system_time_stamp) + system_latency_ + user_latency_ + getAngularTimeOffset();
+  builtin_interfaces::msg::Time stampTime = rclcpp::Time(system_time_stamp) + system_latency_ +
+    user_latency_ + getAngularTimeOffset();
   msg.header.stamp = stampTime;
 
   msg.ranges.reserve(num_beams);
-  if (use_intensity_)
-  {
+  if (use_intensity_) {
     msg.intensities.reserve(num_beams);
   }
 
-  for (size_t i = 0; i < num_beams; i++)
-  {
+  for (int i = 0u; i < num_beams; i++) {
     sensor_msgs::msg::LaserEcho range_echo;
     range_echo.echoes.reserve(URG_MAX_ECHO);
     sensor_msgs::msg::LaserEcho intensity_echo;
-    if (use_intensity_)
-    {
+    if (use_intensity_) {
       intensity_echo.echoes.reserve(URG_MAX_ECHO);
     }
-    for (size_t j = 0; j < URG_MAX_ECHO; j++)
-    {
-      if (data_[(URG_MAX_ECHO * i) + j] != 0)
-      {
+    for (size_t j = 0; j < URG_MAX_ECHO; j++) {
+      if (data_[(URG_MAX_ECHO * i) + j] != 0) {
         range_echo.echoes.push_back(static_cast<float>(data_[(URG_MAX_ECHO * i) + j]) / 1000.0f);
-        if (use_intensity_)
-        {
+        if (use_intensity_) {
           intensity_echo.echoes.push_back(intensity_[(URG_MAX_ECHO * i) + j]);
         }
-      }
-      else
-      {
+      } else {
         break;
       }
     }
     msg.ranges.push_back(range_echo);
-    if (use_intensity_)
-    {
+    if (use_intensity_) {
       msg.intensities.push_back(intensity_echo);
     }
   }
@@ -326,7 +302,7 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan& msg)
   return true;
 }
 
-bool URGCWrapper::getAR00Status(URGStatus& status)
+bool URGCWrapper::getAR00Status(URGStatus & status)
 {
 
   // Construct and write AR00 command.
@@ -355,8 +331,7 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   // Check the checksum.
   uint16_t checksum_result = checkCRC(msg.data(), msg.size());
 
-  if (checksum_result != crc)
-  {
+  if (checksum_result != crc) {
     RCLCPP_WARN(logger_, "Received bad frame, incorrect checksum");
     return false;
   }
@@ -370,8 +345,7 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   ss << response.substr(8, 2);  // Status is 8th position 2 chars.
   ss >> std::hex >> status.status;
 
-  if (status.status != 0)
-  {
+  if (status.status != 0) {
     RCLCPP_WARN(logger_, "Received bad status");
     return false;
   }
@@ -403,9 +377,8 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   RCLCPP_DEBUG(logger_, "Error code: %s", response.substr(14, 2).c_str());
   ss >> std::hex >> status.error_code;
   // Offset by 0x40 is non-zero as per documentation
-  if (status.error_code != 0)
-  {
-     status.error_code += 0x40;
+  if (status.error_code != 0) {
+    status.error_code += 0x40;
   }
 
   // Get the lockout status
@@ -417,7 +390,7 @@ bool URGCWrapper::getAR00Status(URGStatus& status)
   return true;
 }
 
-bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
+bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
 {
   // Construct and write DL00 command.
   std::string str_cmd;
@@ -445,8 +418,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
   // Check the checksum.
   uint16_t checksum_result = checkCRC(msg.data(), msg.size());
 
-  if (checksum_result != crc)
-  {
+  if (checksum_result != crc) {
     RCLCPP_WARN(logger_, "Received bad frame, incorrect checksum");
     return false;
   }
@@ -459,8 +431,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
   ss << response.substr(8, 2);  // Status is 8th position 2 chars.
   ss >> std::hex >> status;
 
-  if (status != 0)
-  {
+  if (status != 0) {
     RCLCPP_WARN(logger_, "Received bad status");
     return false;
   }
@@ -470,8 +441,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
   // Process the message, there are 29 reports.
   // The 30th report is a circular buff marker of area with 0xFF
   // denoting the "last" report being the previous one.
-  for (int i = 0; i < 30; i++)
-  {
+  for (int i = 0; i < 30; i++) {
     uint16_t area = 0;
     uint16_t distance = 0;
     uint16_t step = 0;
@@ -502,24 +472,20 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
     reports.push_back(r);
   }
 
-  for (auto iter = reports.begin(); iter != reports.end(); ++iter)
-  {
+  for (auto iter = reports.begin(); iter != reports.end(); ++iter) {
     // Check if value retrieved for area is FF.
     // if it is this is the last element lasers circular buffer.
-    if (iter->area == 0xFF)
-    {
+    if (iter->area == 0xFF) {
       // Try and read the previous item.
       // if it's the beginning, then all reports
       // are empty.
-      if (iter - 1 == reports.begin())
-      {
+      if (iter - 1 == reports.begin()) {
         RCLCPP_DEBUG(logger_, "All reports are empty, no detections available.");
         report.status = status;
         return false;
       }
-      if (iter - 1 != reports.begin())
-      {
-        report = *(iter-1);
+      if (iter - 1 != reports.begin()) {
+        report = *(iter - 1);
         report.area += 1;  // Final area is offset by 1.
         report.status = status;
         break;
@@ -532,24 +498,23 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport& report)
 
 bool URGCWrapper::setToSCIP2()
 {
-  if (urg_.connection.type == URG_ETHERNET)
+  if (urg_.connection.type == URG_ETHERNET) {
     return false;
+  }
 
   char buffer[sizeof("SCIP2.0\n")];
   int n;
 
-  do
-  {
+  do {
     n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
-  }
-  while (n >= 0);
+  } while (n >= 0);
 
   serial_write(&(urg_.connection.serial), "SCIP2.0\n", sizeof(buffer));
   n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
 
   // Check if switching was successful.
-  if (n > 0 && strcmp(buffer, "SCIP2.0") == 0
-    && urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)
+  if (n > 0 && strcmp(buffer, "SCIP2.0") == 0 &&
+    urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)
   {
     RCLCPP_DEBUG(logger_, "Set sensor to SCIP 2.0.");
     return true;
@@ -557,9 +522,9 @@ bool URGCWrapper::setToSCIP2()
   return false;
 }
 
-uint16_t URGCWrapper::checkCRC(const char* bytes, const uint32_t size)
+uint16_t URGCWrapper::checkCRC(const char * bytes, const uint32_t size)
 {
-  boost::crc_optimal<16, 0x1021, 0, 0, true, true>  crc_kermit_type;
+  boost::crc_optimal<16, 0x1021, 0, 0, true, true> crc_kermit_type;
   crc_kermit_type.process_bytes(bytes, size);
   return crc_kermit_type.checksum();
 }
@@ -569,8 +534,7 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   std::string result;
   bool restart = false;
 
-  if (isStarted())
-  {
+  if (isStarted()) {
     restart = true;
     // Scan must stop before sending a command
     stop();
@@ -586,13 +550,11 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   size_t read_len = 0;
   // Read in the header, make sure we get all 5 bytes expcted
   char recvb[5] = {0};
-  ssize_t expected_read = 5;
-  while (total_read_len < expected_read)
-  {
+  size_t expected_read = 5;
+  while (total_read_len < expected_read) {
     read_len = read(sock, recvb + total_read_len, expected_read - total_read_len);  // READ STX
     total_read_len += read_len;
-    if (read_len <= 0)
-    {
+    if (read_len <= 0) {
       RCLCPP_ERROR(logger_, "Read socket failed: %s", strerror(errno));
       result.clear();
       return result;
@@ -610,9 +572,9 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   uint32_t arr_size = expected_read - 5;
   // Bounds check the size, we really shouldn't exceed 8703 bytes
   // based on the currently known messages on the hokuyo documentations
-  if (arr_size > 10000)
-  {
-    RCLCPP_ERROR(logger_, "Buffer creation bounds exceeded, shouldn't allocate: %lu bytes", arr_size);
+  if (arr_size > 10000) {
+    RCLCPP_ERROR(logger_, "Buffer creation bounds exceeded, shouldn't allocate: %lu bytes",
+      arr_size);
     result.clear();
     return result;
   }
@@ -628,13 +590,11 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   expected_read = arr_size;
 
   RCLCPP_DEBUG(logger_, "Expected body size: %lu bytes", expected_read);
-  while (total_read_len < expected_read)
-  {
-    read_len = read(sock, data.get()+total_read_len, expected_read - total_read_len);
+  while (total_read_len < expected_read) {
+    read_len = read(sock, data.get() + total_read_len, expected_read - total_read_len);
     total_read_len += read_len;
     RCLCPP_DEBUG(logger_, "Read in after header: %lu bytes", read_len);
-    if (read_len <= 0)
-    {
+    if (read_len <= 0) {
       RCLCPP_DEBUG(logger_, "Read socket failed: %s", strerror(errno));
       result.clear();
       return result;
@@ -646,8 +606,7 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   result += std::string(data.get(), expected_read);
 
   // Resume scan after sending.
-  if (restart)
-  {
+  if (restart) {
     start();
   }
 
@@ -795,7 +754,7 @@ std::string URGCWrapper::getSensorState()
   return std::string(urg_sensor_state(&urg_));
 }
 
-void URGCWrapper::setFrameId(const std::string& frame_id)
+void URGCWrapper::setFrameId(const std::string & frame_id)
 {
   frame_id_ = frame_id;
 }
@@ -806,10 +765,9 @@ void URGCWrapper::setUserLatency(const double latency)
 }
 
 // Must be called before urg_start
-bool URGCWrapper::setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster)
+bool URGCWrapper::setAngleLimitsAndCluster(double & angle_min, double & angle_max, int cluster)
 {
-  if (started_)
-  {
+  if (started_) {
     return false;  // Must not be streaming
   }
 
@@ -819,25 +777,20 @@ bool URGCWrapper::setAngleLimitsAndCluster(double& angle_min, double& angle_max,
   cluster_ = cluster;
 
   // Make sure step limits are not the same
-  if (first_step_ == last_step_)
-  {
+  if (first_step_ == last_step_) {
     // Make sure we're not at a limit
     int min_step;
     int max_step;
     urg_step_min_max(&urg_, &min_step, &max_step);
-    if (first_step_ == min_step)  // At beginning of range
-    {
+    if (first_step_ == min_step) { // At beginning of range
       last_step_ = first_step_ + 1;
-    }
-    else     // At end of range (or all other cases)
-    {
+    } else { // At end of range (or all other cases)
       first_step_ = last_step_ - 1;
     }
   }
 
   // Make sure angle_max is greater than angle_min (should check this after end limits)
-  if (last_step_ < first_step_)
-  {
+  if (last_step_ < first_step_) {
     double temp = first_step_;
     first_step_ = last_step_;
     last_step_ = temp;
@@ -846,8 +799,7 @@ bool URGCWrapper::setAngleLimitsAndCluster(double& angle_min, double& angle_max,
   angle_min = urg_step2rad(&urg_, first_step_);
   angle_max = urg_step2rad(&urg_, last_step_);
   int result = urg_set_scanning_parameter(&urg_, first_step_, last_step_, cluster);
-  if (result < 0)
-  {
+  if (result < 0) {
     return false;
   }
   return true;
@@ -860,15 +812,13 @@ void URGCWrapper::setSkip(int skip)
 
 bool URGCWrapper::isIntensitySupported()
 {
-  if (started_)
-  {
+  if (started_) {
     return false;  // Must not be streaming
   }
 
   urg_start_measurement(&urg_, URG_DISTANCE_INTENSITY, 0, 0);
   int ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], NULL, NULL);
-  if (ret <= 0)
-  {
+  if (ret <= 0) {
     return false;  // Failed to start measurement with intensity: must not support it
   }
   urg_stop_measurement(&urg_);
@@ -877,15 +827,13 @@ bool URGCWrapper::isIntensitySupported()
 
 bool URGCWrapper::isMultiEchoSupported()
 {
-  if (started_)
-  {
+  if (started_) {
     return false;  // Must not be streaming
   }
 
   urg_start_measurement(&urg_, URG_MULTIECHO, 0, 0);
   int ret = urg_get_multiecho(&urg_, &data_[0], NULL, NULL);
-  if (ret <= 0)
-  {
+  if (ret <= 0) {
     return false;  // Failed to start measurement with multiecho: must not support it
   }
   urg_stop_measurement(&urg_);
@@ -897,12 +845,9 @@ rclcpp::Duration URGCWrapper::getAngularTimeOffset() const
   // Adjust value for Hokuyo's timestamps
   // Hokuyo's timestamps start from the rear center of the device (at Pi according to ROS standards)
   double circle_fraction = 0.0;
-  if (first_step_ == 0 && last_step_ == 0)
-  {
+  if (first_step_ == 0 && last_step_ == 0) {
     circle_fraction = (getAngleMinLimit() + 3.141592) / (2.0 * 3.141592);
-  }
-  else
-  {
+  } else {
     circle_fraction = (getAngleMin() + 3.141592) / (2.0 * 3.141592);
   }
   return rclcpp::Duration((circle_fraction * getScanPeriod()) * 1e9);
@@ -916,13 +861,13 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
   rclcpp::Duration previous_offset(0);
 
   std::vector<rclcpp::Duration> time_offsets;
-  for (size_t i = 0; i < num_measurements; i++)
-  {
+  for (size_t i = 0; i < num_measurements; i++) {
     rclcpp::Duration scan_offset = getTimeStampOffset(1);
     rclcpp::Duration post_offset = getNativeClockOffset(1);
     rclcpp::Duration adjusted_scan_offset = scan_offset - start_offset;
     rclcpp::Duration adjusted_post_offset = post_offset - start_offset;
-    rclcpp::Duration average_offset(adjusted_post_offset.nanoseconds() / 2.0 + previous_offset.nanoseconds() / 2.0);
+    rclcpp::Duration average_offset(
+      adjusted_post_offset.nanoseconds() / 2.0 + previous_offset.nanoseconds() / 2.0);
 
     time_offsets.push_back(adjusted_scan_offset - average_offset);
 
@@ -931,7 +876,8 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
 
   // Get median value
   // Sort vector using nth_element (partially sorts up to the median index)
-  std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
+  std::nth_element(time_offsets.begin(),
+    time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   system_latency_ = time_offsets[time_offsets.size() / 2];
   // Angular time offset makes the output comparable to that of hokuyo_node
   return system_latency_ + getAngularTimeOffset();
@@ -939,48 +885,46 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
 
 rclcpp::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
 {
-  if (started_)
-  {
+  if (started_) {
     std::stringstream ss;
     ss << "Cannot get native clock offset while started.";
     throw std::runtime_error(ss.str());
   }
 
-  if (urg_start_time_stamp_mode(&urg_) < 0)
-  {
+  if (urg_start_time_stamp_mode(&urg_) < 0) {
     std::stringstream ss;
     ss << "Cannot start time stamp mode.";
     throw std::runtime_error(ss.str());
   }
 
   std::vector<rclcpp::Duration> time_offsets;
-  for (size_t i = 0; i < num_measurements; i++)
-  {
-    rclcpp::Time request_time(std::chrono::duration_cast< std::chrono::nanoseconds >(std::chrono::system_clock::now().time_since_epoch()).count());
+  for (size_t i = 0; i < num_measurements; i++) {
+    rclcpp::Time request_time(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
     double urg_ts = urg_time_stamp(&urg_);
     rclcpp::Time laser_time(1e6 * urg_ts);
-    rclcpp::Time response_time(std::chrono::duration_cast< std::chrono::nanoseconds >(std::chrono::system_clock::now().time_since_epoch()).count());
+    rclcpp::Time response_time(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
     rclcpp::Time average_time(response_time.nanoseconds() / 2.0 + request_time.nanoseconds() / 2.0);
     time_offsets.push_back(laser_time - average_time);
   }
 
-  if (urg_stop_time_stamp_mode(&urg_) < 0)
-  {
+  if (urg_stop_time_stamp_mode(&urg_) < 0) {
     std::stringstream ss;
     ss << "Cannot stop time stamp mode.";
     throw std::runtime_error(ss.str());
-  };
+  }
 
   // Return median value
   // Sort vector using nth_element (partially sorts up to the median index)
-  std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
+  std::nth_element(time_offsets.begin(),
+    time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
 }
 
 rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 {
-  if (started_)
-  {
+  if (started_) {
     std::stringstream ss;
     ss << "Cannot get time stamp offset while started.";
     throw std::runtime_error(ss.str());
@@ -989,31 +933,24 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
   start();
 
   std::vector<rclcpp::Duration> time_offsets;
-  for (size_t i = 0; i < num_measurements; i++)
-  {
+  for (size_t i = 0; i < num_measurements; i++) {
     long time_stamp;
     unsigned long long system_time_stamp;
     int ret = 0;
 
-    if (measurement_type_ == URG_DISTANCE)
-    {
+    if (measurement_type_ == URG_DISTANCE) {
       ret = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
-    }
-    else if (measurement_type_ == URG_DISTANCE_INTENSITY)
-    {
-      ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
-    }
-    else if (measurement_type_ == URG_MULTIECHO)
-    {
+    } else if (measurement_type_ == URG_DISTANCE_INTENSITY) {
+      ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
+          &system_time_stamp);
+    } else if (measurement_type_ == URG_MULTIECHO) {
       ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
-    }
-    else if (measurement_type_ == URG_MULTIECHO_INTENSITY)
-    {
-      ret = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
+    } else if (measurement_type_ == URG_MULTIECHO_INTENSITY) {
+      ret = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
+          &system_time_stamp);
     }
 
-    if (ret <= 0)
-    {
+    if (ret <= 0) {
       std::stringstream ss;
       ss << "Cannot get scan to measure time stamp offset.";
       throw std::runtime_error(ss.str());
@@ -1029,7 +966,8 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 
   // Return median value
   // Sort vector using nth_element (partially sorts up to the median index)
-  std::nth_element(time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
+  std::nth_element(time_offsets.begin(),
+    time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
 }
 }  // namespace urg_node

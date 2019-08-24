@@ -53,32 +53,32 @@
   #include <unistd.h>
 #endif
 
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
+std::vector<std::string> & split(
+  const std::string & s, char delim,
+  std::vector<std::string> & elems)
 {
   std::stringstream ss(s);
   std::string item;
-  while (std::getline(ss, item, delim))
-  {
+  while (std::getline(ss, item, delim)) {
     elems.push_back(item);
   }
   return elems;
 }
 
 
-std::vector<std::string> split(const std::string &s, char delim)
+std::vector<std::string> split(const std::string & s, char delim)
 {
   std::vector<std::string> elems;
   split(s, delim, elems);
   return elems;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
-  if (argc < 2 || argc > 3)
-  {
+  if (argc < 2 || argc > 3) {
     fprintf(stderr,
-        "usage: getID /dev/ttyACM? [quiet]\nOutputs the device ID of a hokuyo at /dev/ttyACM? or IP address"
-        " (specified as 192.168.1.6:10940). Add a second argument for script friendly output.\n");
+      "usage: getID /dev/ttyACM? [quiet]\nOutputs the device ID of a hokuyo at /dev/ttyACM? or IP address"
+      " (specified as 192.168.1.6:10940). Add a second argument for script friendly output.\n");
     return 1;
   }
 
@@ -86,8 +86,7 @@ int main(int argc, char** argv)
 
   int save_stdout = dup(STDOUT_FILENO);
 
-  if (!verbose)  // Block urg's prints
-  {
+  if (!verbose) { // Block urg's prints
     int fds[2];
     int res;
     int so;
@@ -110,19 +109,13 @@ int main(int argc, char** argv)
   std::string serial_port = "";
 
   std::vector<std::string> ip_split = split(argv[1], ':');
-  if (ip_split.size() < 2)  // Not an IP address
-  {
+  if (ip_split.size() < 2) { // Not an IP address
     serial_port = argv[1];
-  }
-  else if (ip_split.size() == 2)   // IP address formatted as IP:PORT
-  {
+  } else if (ip_split.size() == 2) { // IP address formatted as IP:PORT
     ip_address = ip_split[0];
     ip_port = atoi(ip_split[1].c_str());
-  }
-  else     // Invalid
-  {
-    if (verbose)
-    {
+  } else { // Invalid
+    if (verbose) {
       printf("getID failed due to invalid specifier.\n");
       return 1;
     }
@@ -130,30 +123,23 @@ int main(int argc, char** argv)
 
   std::shared_ptr<urg_node::URGCWrapper> urg_;
 
-  for (int retries = 10; retries; retries--)
-  {
+  for (int retries = 10; retries; retries--) {
     // Set up the urgwidget
-    try
-    {
-      if (ip_address != "")
-      {
-        urg_.reset(new urg_node::URGCWrapper(ip_address, ip_port,
-            publish_intensity, publish_multiecho));
-      }
-      else
-      {
-        urg_.reset(new urg_node::URGCWrapper(serial_baud, serial_port,
-            publish_intensity, publish_multiecho));
+    try {
+      if (ip_address != "") {
+        urg_node::EthernetConnection connection{ip_address, ip_port};
+        urg_.reset(new urg_node::URGCWrapper(connection,
+          publish_intensity, publish_multiecho));
+      } else {
+        urg_node::SerialConnection connection{serial_port, serial_baud};
+        urg_.reset(new urg_node::URGCWrapper(connection,
+          publish_intensity, publish_multiecho));
       }
       std::string device_id = urg_->getDeviceID();
-      if (verbose)
-      {
-        if (ip_address != "")
-        {
+      if (verbose) {
+        if (ip_address != "") {
           printf("Device at %s:%i has ID ", ip_address.c_str(), ip_port);
-        }
-        else
-        {
+        } else {
           printf("Device at %s has ID ", serial_port.c_str());
         }
       }
@@ -162,24 +148,18 @@ int main(int argc, char** argv)
       dup2(save_stdout, STDOUT_FILENO);  // Restore std::out
       printf("%s\n", device_id.c_str());
       return 0;
-    }
-    catch (std::runtime_error& e)
-    {
+    } catch (std::runtime_error & e) {
       printf("getID failed: %s\n", e.what());
     }
 
     rclcpp::sleep_for(std::chrono::seconds(1));
   }
 
-  if (verbose)
-  {
+  if (verbose) {
     printf("getID failed for 10 seconds. Giving up.\n");
-    if (ip_address != "")
-    {
+    if (ip_address != "") {
       printf("Device at %s:%i\n", ip_address.c_str(), ip_port);
-    }
-    else
-    {
+    } else {
       printf("Device at %s\n", serial_port.c_str());
     }
   }

@@ -93,14 +93,30 @@ public:
   float angle;
 };
 
+struct EthernetConnection
+{
+  std::string ip_address;
+  int ip_port;
+};
+
+struct SerialConnection
+{
+  std::string serial_port;
+  int serial_baud;
+};
+
 class URGCWrapper
 {
 public:
-  URGCWrapper(const std::string& ip_address, const int ip_port,
-      bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
+  URGCWrapper(
+    const EthernetConnection & connection,
+    bool & using_intensity, bool & using_multiecho,
+    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
-  URGCWrapper(const int serial_baud, const std::string& serial_port,
-      bool& using_intensity, bool& using_multiecho, const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
+  URGCWrapper(
+    const SerialConnection & connection,
+    bool & using_intensity, bool & using_multiecho,
+    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
   ~URGCWrapper();
 
@@ -156,26 +172,26 @@ public:
 
   std::string getSensorState();
 
-  void setFrameId(const std::string& frame_id);
+  void setFrameId(const std::string & frame_id);
 
   void setUserLatency(const double latency);
 
-  bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
+  bool setAngleLimitsAndCluster(double & angle_min, double & angle_max, int cluster);
 
   void setSkip(int skip);
 
   rclcpp::Duration computeLatency(size_t num_measurements);
 
-  bool grabScan(sensor_msgs::msg::LaserScan& msg);
+  bool grabScan(sensor_msgs::msg::LaserScan & msg);
 
-  bool grabScan(sensor_msgs::msg::MultiEchoLaserScan& msg);
+  bool grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg);
 
-  bool getAR00Status(URGStatus& status);
+  bool getAR00Status(URGStatus & status);
 
-  bool getDL00Status(UrgDetectionReport& report);
+  bool getDL00Status(UrgDetectionReport & report);
 
 private:
-  void initialize(bool& using_intensity, bool& using_multiecho);
+  void initialize(bool & using_intensity, bool & using_multiecho);
 
   bool isIntensitySupported();
 
@@ -199,7 +215,7 @@ private:
    * @param size The size of the bytes array.
    * @return the calculated CRC of the bytes.
    */
-  uint16_t checkCRC(const char* bytes, const uint32_t size);
+  uint16_t checkCRC(const char * bytes, const uint32_t size);
 
   /**
    * @brief Send an arbitrary serial command to the lidar. These commands
@@ -209,8 +225,10 @@ private:
    */
   std::string sendCommand(std::string cmd);
 
-  /// Logger object used for debug info
-  rclcpp::Logger logger_;
+  std::string ip_address_;
+  int ip_port_;
+  std::string serial_port_;
+  int serial_baud_;
 
   std::string frame_id_;  ///< Output frame_id for each laserscan.
 
@@ -237,10 +255,8 @@ private:
   const double adj_alpha_ = .01;
   uint64_t adj_count_;
 
-  std::string ip_address_;
-  int ip_port_;
-  std::string serial_port_;
-  int serial_baud_;
+  /// Logger object used for debug info
+  rclcpp::Logger logger_;
 };
 }  // namespace urg_node
 

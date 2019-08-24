@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.5)
 project(urg_node)
 
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(urg_node_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
@@ -15,8 +23,6 @@ find_package(urg_c REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(Boost REQUIRED thread)
-
-set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++14")
 
 set(INCLUDE_DIRS
   include
@@ -93,17 +99,6 @@ install(PROGRAMS
 # Install launch files
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 
-if(BUILD_TESTING)
-  #find_package(ament_lint_auto REQUIRED)
-
-  # Ignore long -> int32_t warning, urg_c driver uses
-  # long, etc. Wrapper must also use these
-  #set(ROSLINT_CPP_OPTS "--filter=-runtime/references,-runtime/int")
-  #ament_lint_auto_find_test_dependencies()
-  #roslint_cpp()
-  #roslint_add_test()
-endif()
-
 ament_export_dependencies(urg_node_msgs)
 ament_export_dependencies(diagnostic_updater)
 #ament_export_dependencies(dynamic_reconfigure)
@@ -116,6 +111,7 @@ ament_export_dependencies(tf2)
 ament_export_dependencies(urg_c)
 ament_export_dependencies(builtin_interfaces)
 ament_export_dependencies(rosidl_default_generators)
+
 ament_export_include_directories(${INCLUDE_DIRS})
 ament_export_libraries(urg_c_wrapper urg_node_driver ${LIBS})
 

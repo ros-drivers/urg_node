@@ -81,16 +81,17 @@ public:
 private:
   bool connect();
   void reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event);
-  rcl_interfaces::msg::SetParametersResult param_change_callback(const std::vector<rclcpp::Parameter> parameters);
+  rcl_interfaces::msg::SetParametersResult param_change_callback(
+    const std::vector<rclcpp::Parameter> parameters);
   void calibrate_time_offset();
   void updateDiagnostics();
-  void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat);
+  void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat);
   void scanThread();
 
   void statusCallback(
-      const std::shared_ptr<rmw_request_id_t> requestHeader,
-      const std_srvs::srv::Trigger::Request::SharedPtr req,
-      const std_srvs::srv::Trigger::Response::SharedPtr res);
+    const std::shared_ptr<rmw_request_id_t> requestHeader,
+    const std_srvs::srv::Trigger::Request::SharedPtr req,
+    const std_srvs::srv::Trigger::Response::SharedPtr res);
 
 
   std::thread diagnostics_thread_;
@@ -115,22 +116,23 @@ private:
   std::string protocol_version_;
   std::string device_id_;
   uint16_t error_code_;
+  int error_count_;
+  int error_limit_;
   bool lockout_status_;
 
-  int error_count_;
   double freq_min_;
   bool close_diagnostics_;
   bool close_scan_;
 
-  int ip_port_;
   std::string ip_address_;
+  int ip_port_;
   std::string serial_port_;
   int serial_baud_;
+
   bool calibrate_time_;
   bool synchronize_time_;
   bool publish_intensity_;
   bool publish_multiecho_;
-  int error_limit_;
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
   bool detailed_status_;

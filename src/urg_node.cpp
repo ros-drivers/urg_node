@@ -33,7 +33,7 @@
 
 #include "urg_node/urg_node_driver.hpp"
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   // Initialize node and nodehandles
   rclcpp::init(argc, argv);
