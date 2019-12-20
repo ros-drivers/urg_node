@@ -40,7 +40,7 @@ int main(int argc, char ** argv)
   auto node = std::make_shared<urg_node::UrgNode>("urg_node");
 
   // Run the urg node
-  //node->run();
+  node->run();
 
   rclcpp::spin(node);
 

@@ -407,7 +407,7 @@ void UrgNode::calibrate_time_offset()
 void UrgNode::updateDiagnostics()
 {
   while (!close_diagnostics_) {
-    diagnostic_updater_.update();
+    diagnostic_updater_.force_update();
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 }
@@ -661,6 +661,6 @@ void UrgNode::run()
 
   // Start scanning now that everything is configured.
   close_scan_ = false;
-  //scan_thread_ = std::thread(std::bind(&UrgNode::scanThread, this));
+  scan_thread_ = std::thread(std::bind(&UrgNode::scanThread, this));
 }
 }  // namespace urg_node
