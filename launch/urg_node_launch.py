@@ -1,30 +1,34 @@
-# <launch>
-#  <node name="urg_node" pkg="urg_node" type="urg_node" output="screen">
-#    <param name="ip_address" value=""/>
-#    <param name="serial_port" value="/dev/ttyACM0"/>
-#    <param name="serial_baud" value="115200"/>
-#    <param name="frame_id" value="laser"/>
-#    <param name="calibrate_time" value="true"/>
-#    <param name="publish_intensity" value="false"/>
-#    <param name="publish_multiecho" value="false"/>
-#    <param name="angle_min" value="-1.5707963"/>
-#    <param name="angle_max" value="1.5707963"/>
-#  </node>
-#</launch>
+import os
+from ament_index_python.packages import get_package_share_directory
 
-from ros2_launch_util import add_node
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.actions import SetLaunchConfiguration
+from launch_ros.actions import Node
+from launch.actions import OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 
-def launch(descriptor, argv):
-    args = []
+def generate_launch_description():
+    urg_node_dir = get_package_share_directory('urg_node')
+    launch_description = LaunchDescription( [
+        #LAUNCH ARGUMENTS
+        DeclareLaunchArgument(
+            'sensor_interface',
+            default_value = "serial",
+            description = "sensor_interface: supported: serial, ethernet")] )
 
-    # Handle the optional serial port argument
-    name = "serial_port"
-    if name in argv:
-        args.extend(["--serial-port", argv[name]])
+    def expand_param_file_name( context ):
+        param_file = os.path.join( urg_node_dir, 'launch', 'urg_node_'+context.launch_configurations['sensor_interface'] +'.yaml' )
+        if os.path.exists( param_file ):
+            return [SetLaunchConfiguration( 'param', param_file )]
 
-    # Handle the optional user latency argument
-    name = "user_latency"
-    if name in argv:
-        args.extend(["--user-latency", argv[name]])
+    param_file_path = OpaqueFunction( function=expand_param_file_name )
+    launch_description.add_action( param_file_path )
 
-    add_node(descriptor, "urg_node", "urg_node", args=args)
+    hokuyo_node = Node(
+        package='urg_node', node_executable='urg_node', output='screen',
+        parameters=[LaunchConfiguration( 'param' )]
+        )
+
+    launch_description.add_action( hokuyo_node )
+    return launch_description
