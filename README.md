@@ -42,7 +42,7 @@ cd ~/ros2_ws
 colcon build --packages-up-to urg_node
 ```
 
-For more information about colcon [here](https://media.readthedocs.org/pdf/colcon/latest/colcon.pdf)
+More information about colcon is available [here](https://media.readthedocs.org/pdf/colcon/latest/colcon.pdf)
 
 
 #### LaserScan Visualization
