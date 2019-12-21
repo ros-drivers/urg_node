@@ -31,6 +31,10 @@
  * Author: Chad Rockey, Michael Carroll, Mike O'Driscoll
  */
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "urg_node/urg_node_driver.hpp"
 
 namespace urg_node
@@ -73,42 +77,26 @@ UrgNode::UrgNode(const std::string & node_name)
 void UrgNode::initSetup()
 {
   // Declare parameters so we can change these later.
-  this->declare_parameter<std::string>("ip_address", ip_address_);
-  this->declare_parameter<int>("ip_port", ip_port_);
-  this->declare_parameter<std::string>("laser_frame_id", laser_frame_id_);
-  this->declare_parameter<std::string>("serial_port", serial_port_);
-  this->declare_parameter<int>("serial_baud", serial_baud_);
-  this->declare_parameter<bool>("calibrate_time", calibrate_time_);
-  this->declare_parameter<bool>("publish_intensity", publish_intensity_);
-  this->declare_parameter<bool>("publish_multiecho", publish_multiecho_);
-  this->declare_parameter<int>("error_limit", error_limit_);
-  this->declare_parameter<double>("diagnostics_tolerance", diagnostics_tolerance_);
-  this->declare_parameter<double>("diagnostics_window_time", diagnostics_window_time_);
-  this->declare_parameter<bool>("get_detailed_status", detailed_status_);
-  this->declare_parameter<double>("default_user_latency", default_user_latency_);
-  this->declare_parameter<double>("angle_min", angle_min_);
-  this->declare_parameter<double>("angle_max", angle_max_);
-  this->declare_parameter<int>("skip", skip_);
-  this->declare_parameter<int>("cluster", cluster_);
-
-  // Get parameters from param file.
-  this->get_parameter("ip_address", ip_address_);
-  this->get_parameter("ip_port", ip_port_);
-  this->get_parameter("laser_frame_id", laser_frame_id_);
-  this->get_parameter("serial_port", serial_port_);
-  this->get_parameter("serial_baud", serial_baud_);
-  this->get_parameter("calibrate_time", calibrate_time_);
-  this->get_parameter("publish_intensity", publish_intensity_);
-  this->get_parameter("publish_multiecho", publish_multiecho_);
-  this->get_parameter("error_limit", error_limit_);
-  this->get_parameter("diagnostics_tolerance", diagnostics_tolerance_);
-  this->get_parameter("diagnostics_window_time", diagnostics_window_time_);
-  this->get_parameter("get_detailed_status", detailed_status_);
-  this->get_parameter("default_user_latency", default_user_latency_);
-  this->get_parameter("angle_min", angle_min_);
-  this->get_parameter("angle_max", angle_max_);
-  this->get_parameter("skip", skip_);
-  this->get_parameter("cluster", cluster_);
+  ip_address_ = this->declare_parameter<std::string>("ip_address", ip_address_);
+  ip_port_ = this->declare_parameter<int>("ip_port", ip_port_);
+  laser_frame_id_ = this->declare_parameter<std::string>("laser_frame_id", laser_frame_id_);
+  serial_port_ = this->declare_parameter<std::string>("serial_port", serial_port_);
+  serial_baud_ = this->declare_parameter<int>("serial_baud", serial_baud_);
+  calibrate_time_ = this->declare_parameter<bool>("calibrate_time", calibrate_time_);
+  publish_intensity_ = this->declare_parameter<bool>("publish_intensity", publish_intensity_);
+  publish_multiecho_ = this->declare_parameter<bool>("publish_multiecho", publish_multiecho_);
+  error_limit_ = this->declare_parameter<int>("error_limit", error_limit_);
+  diagnostics_tolerance_ = this->declare_parameter<double>("diagnostics_tolerance",
+      diagnostics_tolerance_);
+  diagnostics_window_time_ = this->declare_parameter<double>("diagnostics_window_time",
+      diagnostics_window_time_);
+  detailed_status_ = this->declare_parameter<bool>("get_detailed_status", detailed_status_);
+  default_user_latency_ = this->declare_parameter<double>("default_user_latency",
+      default_user_latency_);
+  angle_min_ = this->declare_parameter<double>("angle_min", angle_min_);
+  angle_max_ = this->declare_parameter<double>("angle_max", angle_max_);
+  skip_ = this->declare_parameter<int>("skip", skip_);
+  cluster_ = this->declare_parameter<int>("cluster", cluster_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
@@ -123,14 +111,13 @@ void UrgNode::initSetup()
     std::bind(&UrgNode::statusCallback, this,
     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-  // TODO: ros2 does not have latched topics yet, need to play with QoS
-  status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);  // latched=true
+  // TODO(karsten1987): ros2 does not have latched topics yet, need to play with QoS
+  status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);
 
   diagnostic_updater_.add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
 
   this->set_on_parameters_set_callback(std::bind(&UrgNode::param_change_callback, this,
     std::placeholders::_1));
-
 }
 
 UrgNode::~UrgNode()
@@ -226,7 +213,8 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
   ss << "\n";
   RCLCPP_INFO(this->get_logger(), ss.str().c_str());
 
-  // Concat the new parameters (I guess there shouldn't be any though) with the changed parameters into one vector
+  // Concat the new parameters (I guess there shouldn't be any though)
+  // with the changed parameters into one vector
   std::vector<rcl_interfaces::msg::Parameter> parameter_vec = event->new_parameters;
   parameter_vec.insert(parameter_vec.end(),
     event->changed_parameters.begin(), event->changed_parameters.end());
@@ -234,7 +222,8 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
   // Some parameter change require to stop and start the driver to be applied
   bool restart_required(false);
 
-  // Get each parameter one by one, the param_change_callback should leave us only with valid parameters
+  // Get each parameter one by one, the param_change_callback should leave us
+  // only with valid parameters
   for (auto parameter : parameter_vec) {
     if (parameter.name.compare("laser_frame_id") == 0) {
       laser_frame_id_ = parameter.value.string_value;
@@ -297,7 +286,8 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
   auto result = rcl_interfaces::msg::SetParametersResult();
   result.successful = true;
 
-  // Will concat a string explaining why it failed, should only be used for logging and user interfaces.
+  // Will concat a string explaining why it failed,
+  // should only be used for logging and user interfaces.
   std::stringstream string_result;
 
   for (auto parameter : parameters) {
@@ -314,7 +304,7 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
 
     } else if (parameter.get_name().compare("error_limit") == 0) {
       if (parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER) {
-        // TODO check if value = 0 is okay
+        // TODO(tbd) check if value = 0 is okay
         if (parameter.as_int() >= 0) {
           result.successful &= true;
         } else {
@@ -451,7 +441,7 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
   if (!urg_->isStarted()) {
     stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Not Connected: " + device_status_);
-  } else if (device_status_ != std::string("Sensor works well.") &&
+  } else if (device_status_ != std::string("Sensor works well.") &&  //NOLINT
     device_status_ != std::string("Stable 000 no error.") &&
     device_status_ != std::string("sensor is working normally"))
   {
@@ -675,8 +665,8 @@ void UrgNode::run()
   }
 
   //// Now that we are setup, kick off diagnostics.
-  //close_diagnostics_ = false;
-  //diagnostics_thread_ = std::thread(std::bind(&UrgNode::updateDiagnostics, this));
+  close_diagnostics_ = false;
+  diagnostics_thread_ = std::thread(std::bind(&UrgNode::updateDiagnostics, this));
 
   // Start scanning now that everything is configured.
   close_scan_ = false;

@@ -32,28 +32,30 @@
  * Author: Mike O'Driscoll
  */
 
-#ifndef URG_NODE_URG_NODE_DRIVER_H
-#define URG_NODE_URG_NODE_DRIVER_H
+#ifndef URG_NODE__URG_NODE_DRIVER_HPP_
+#define URG_NODE__URG_NODE_DRIVER_HPP_
 
 #include <chrono>
+#include <iostream>
+#include <memory>
 #include <string>
-#include <rclcpp/rclcpp.hpp>
-//#include <dynamic_reconfigure/server.h>
-#include <laser_proc/LaserTransport.h>
-#include <diagnostic_updater/diagnostic_updater.hpp>
-#include <diagnostic_updater/publisher.hpp>
-#include <diagnostic_msgs/msg/diagnostic_status.hpp>
-//#include <urg_node/URGConfig.h>
-#include <std_srvs/srv/trigger.hpp>
+#include <vector>
+
+#include "diagnostic_updater/diagnostic_updater.hpp"
+#include "diagnostic_updater/publisher.hpp"
+#include "diagnostic_msgs/msg/diagnostic_status.hpp"
+
+#include "laser_proc/laser_transport.hpp"
+
+#include "rcl_interfaces/msg/parameter.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
+
+#include "rclcpp/rclcpp.hpp"
+
+#include "std_srvs/srv/trigger.hpp"
 
 #include "urg_node_msgs/msg/status.hpp"
 #include "urg_node/urg_c_wrapper.hpp"
-
-//#include <tf2/tf.h>  // tf header for resolving tf prefix
-#include <rclcpp/parameter_client.hpp>
-#include <rcl_interfaces/msg/parameter.hpp>
-#include <rcl_interfaces/msg/set_parameters_result.hpp>
-#include <iostream>
 
 namespace urg_node
 {
@@ -80,12 +82,18 @@ public:
 
 private:
   bool connect();
+
   void reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event);
+
   rcl_interfaces::msg::SetParametersResult param_change_callback(
     const std::vector<rclcpp::Parameter> parameters);
+
   void calibrate_time_offset();
+
   void updateDiagnostics();
+
   void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat);
+
   void scanThread();
 
   void statusCallback(
@@ -98,15 +106,17 @@ private:
   std::thread scan_thread_;
 
   std::unique_ptr<urg_node::URGCWrapper> urg_;
-  //std::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
+
   diagnostic_updater::Updater diagnostic_updater_;
   std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
   std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
 
   std::mutex lidar_mutex_;
 
-  /* Non-const device properties.  If you poll the driver for these
-  * while scanning is running, then the scan will probably fail.
+  /*
+   * Non-const device properties.
+   * If you poll the driver for these
+   * while scanning is running, then the scan will probably fail.
   */
   std::string device_status_;
   std::string vendor_name_;
@@ -138,10 +148,12 @@ private:
   bool detailed_status_;
   double angle_min_;
   double angle_max_;
-  /** Divide the number of rays per scan by cluster_ (if cluster_ == 10, you get 1/10 ray per scan) */
-  int cluster_; // default : 1, range : 1 to 100
+  /**
+   * Divide the number of rays per scan by cluster_ (if cluster_ == 10, you get 1/10 ray per scan)
+   * */
+  int cluster_;  // default : 1, range : 1 to 100
   /** Reduce the rate of scans */
-  int skip_; // default : 0, range : 0 to 9
+  int skip_;  // default : 0, range : 0 to 9
 
   /** The default user latency value. */
   double default_user_latency_;
@@ -160,7 +172,6 @@ private:
   /** The parameters client to catch modification of parameters during runtime */
   rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;
 };
-
 }  // namespace urg_node
 
-#endif  // URG_NODE_URG_NODE_DRIVER_H
+#endif  // URG_NODE__URG_NODE_DRIVER_HPP_

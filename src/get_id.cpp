@@ -32,16 +32,18 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <urg_node/urg_c_wrapper.hpp>
-#include <vector>
-#include <string>
-
-#include <fcntl.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
-#include <rclcpp/rclcpp.hpp>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "urg_node/urg_c_wrapper.hpp"
+
+#include "rclcpp/rclcpp.hpp"
 
 #ifdef _WIN32
   #include <io.h>
@@ -49,7 +51,7 @@
   #define fileno _fileno
   #define dup2 _dup2
   #define read _read
-#elif  __linux__ || __unix || __unix__
+#elif  __linux__ || __unix || __unix__ || __APPLE__
   #include <unistd.h>
 #endif
 
@@ -65,7 +67,6 @@ std::vector<std::string> & split(
   return elems;
 }
 
-
 std::vector<std::string> split(const std::string & s, char delim)
 {
   std::vector<std::string> elems;
@@ -77,7 +78,8 @@ int main(int argc, char ** argv)
 {
   if (argc < 2 || argc > 3) {
     fprintf(stderr,
-      "usage: getID /dev/ttyACM? [quiet]\nOutputs the device ID of a hokuyo at /dev/ttyACM? or IP address"
+      "usage: getID /dev/ttyACM? [quiet]\n"
+      "Outputs the device ID of a hokuyo at /dev/ttyACM? or IP address"
       " (specified as 192.168.1.6:10940). Add a second argument for script friendly output.\n");
     return 1;
   }
@@ -86,7 +88,7 @@ int main(int argc, char ** argv)
 
   int save_stdout = dup(STDOUT_FILENO);
 
-  if (!verbose) { // Block urg's prints
+  if (!verbose) {  // Block urg's prints
     int fds[2];
     int res;
     int so;
@@ -100,7 +102,6 @@ int main(int argc, char ** argv)
     assert(res != -1);
   }
 
-
   bool publish_intensity = false;
   bool publish_multiecho = false;
   int serial_baud = 115200;
@@ -109,12 +110,12 @@ int main(int argc, char ** argv)
   std::string serial_port = "";
 
   std::vector<std::string> ip_split = split(argv[1], ':');
-  if (ip_split.size() < 2) { // Not an IP address
+  if (ip_split.size() < 2) {  // Not an IP address
     serial_port = argv[1];
-  } else if (ip_split.size() == 2) { // IP address formatted as IP:PORT
+  } else if (ip_split.size() == 2) {  // IP address formatted as IP:PORT
     ip_address = ip_split[0];
     ip_port = atoi(ip_split[1].c_str());
-  } else { // Invalid
+  } else {  // Invalid
     if (verbose) {
       printf("getID failed due to invalid specifier.\n");
       return 1;

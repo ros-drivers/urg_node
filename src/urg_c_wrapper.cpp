@@ -33,6 +33,13 @@
 
 #include <urg_node/urg_c_wrapper.hpp>
 
+#include <limits>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "boost/crc.hpp"
+
 namespace urg_node
 {
 
@@ -51,7 +58,7 @@ URGCWrapper::URGCWrapper(
 {
   (void) adj_alpha_;
 
-  long baudrate_or_port = (long)ip_port_;
+  long baudrate_or_port = (long)ip_port_;  // NOLINT
   const char * device = ip_address_.c_str();
 
   int result = urg_open(&urg_, URG_ETHERNET, device, baudrate_or_port);
@@ -81,7 +88,7 @@ URGCWrapper::URGCWrapper(
 {
   (void) adj_alpha_;
 
-  long baudrate_or_port = (long)serial_baud_;
+  long baudrate_or_port = (long)serial_baud_;  // NOLINT
   const char * device = serial_port_.c_str();
 
   int result = urg_open(&urg_, URG_SERIAL, device, baudrate_or_port);
@@ -101,7 +108,8 @@ URGCWrapper::URGCWrapper(
 void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
 {
   int urg_data_size = urg_max_data_size(&urg_);
-  // urg_max_data_size can return a negative, error code value. Resizing based on this value will fail.
+  // urg_max_data_size can return a negative, error code value.
+  // Resizing based on this value will fail.
   if (urg_data_size < 0) {
     // This error can be caused by a URG-04LX in SCIP 1.1 mode, so we try to set SCIP 2.0 mode.
     if (setToSCIP2() && urg_max_data_size(&urg_) >= 0) {
@@ -117,7 +125,8 @@ void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
       throw std::runtime_error(ss.str());
     }
   }
-  // Ocassionally urg_max_data_size returns a string pointer, make sure we don't allocate too much space,
+  // Ocassionally urg_max_data_size returns a string pointer,
+  // make sure we don't allocate too much space,
   // the current known max is 1440 steps
   if (urg_data_size > 5000) {
     urg_data_size = 5000;
@@ -203,8 +212,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
 
   // Grab scan
   int num_beams = 0;
-  long time_stamp = 0;
-  unsigned long long system_time_stamp = 0;
+  long time_stamp = 0;  // NOLINT
+  unsigned long long system_time_stamp = 0;  // NOLINT
 
   if (use_intensity_) {
     num_beams = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
@@ -253,8 +262,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
 
   // Grab scan
   int num_beams = 0;
-  long time_stamp = 0;
-  unsigned long long system_time_stamp;
+  long time_stamp = 0;  // NOLINT
+  unsigned long long system_time_stamp;  // NOLINT
 
   if (use_intensity_) {
     num_beams = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
@@ -266,7 +275,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
     return false;
   }
 
-  // Fill scan (uses vector.reserve wherever possible to avoid initalization and unecessary memory expansion)
+  // Fill scan
+  // (uses vector.reserve wherever possible to avoid initalization and unecessary memory expansion)
   builtin_interfaces::msg::Time stampTime = rclcpp::Time(system_time_stamp) + system_latency_ +
     user_latency_ + getAngularTimeOffset();
   msg.header.stamp = stampTime;
@@ -304,7 +314,6 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
 
 bool URGCWrapper::getAR00Status(URGStatus & status)
 {
-
   // Construct and write AR00 command.
   std::string str_cmd;
   str_cmd += 0x02;  // STX
@@ -514,7 +523,7 @@ bool URGCWrapper::setToSCIP2()
 
   // Check if switching was successful.
   if (n > 0 && strcmp(buffer, "SCIP2.0") == 0 &&
-    urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)
+    urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)  // NOLINT
   {
     RCLCPP_DEBUG(logger_, "Set sensor to SCIP 2.0.");
     return true;
@@ -581,8 +590,7 @@ std::string URGCWrapper::sendCommand(std::string cmd)
 
   RCLCPP_DEBUG(logger_, "Creating buffer read of arr_Size: %lu bytes", arr_size);
   // Create buffer space for read.
-  boost::shared_array<char> data;
-  data.reset(new char[arr_size]);
+  auto data = std::make_unique<char[]>(arr_size);
 
   // Read the remaining command
   total_read_len = 0;
@@ -620,16 +628,16 @@ bool URGCWrapper::isStarted() const
 
 double URGCWrapper::getRangeMin() const
 {
-  long minr;
-  long maxr;
+  long minr;  // NOLINT
+  long maxr;  // NOLINT
   urg_distance_min_max(&urg_, &minr, &maxr);
   return static_cast<double>(minr) / 1000.0;
 }
 
 double URGCWrapper::getRangeMax() const
 {
-  long minr;
-  long maxr;
+  long minr;  // NOLINT
+  long maxr;  // NOLINT
   urg_distance_min_max(&urg_, &minr, &maxr);
   return static_cast<double>(maxr) / 1000.0;
 }
@@ -669,7 +677,7 @@ double URGCWrapper::getAngleIncrement() const
 
 double URGCWrapper::getScanPeriod() const
 {
-  long scan_usec = urg_scan_usec(&urg_);
+  long scan_usec = urg_scan_usec(&urg_);  // NOLINT
   return 1.e-6 * static_cast<double>(scan_usec);
 }
 
@@ -782,9 +790,9 @@ bool URGCWrapper::setAngleLimitsAndCluster(double & angle_min, double & angle_ma
     int min_step;
     int max_step;
     urg_step_min_max(&urg_, &min_step, &max_step);
-    if (first_step_ == min_step) { // At beginning of range
+    if (first_step_ == min_step) {  // At beginning of range
       last_step_ = first_step_ + 1;
-    } else { // At end of range (or all other cases)
+    } else {  // At end of range (or all other cases)
       first_step_ = last_step_ - 1;
     }
   }
@@ -934,8 +942,8 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 
   std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++) {
-    long time_stamp;
-    unsigned long long system_time_stamp;
+    long time_stamp;  // NOLINT
+    unsigned long long system_time_stamp;  // NOLINT
     int ret = 0;
 
     if (measurement_type_ == URG_DISTANCE) {

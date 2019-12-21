@@ -31,26 +31,23 @@
  * Author: Chad Rockey
  */
 
-#ifndef URG_NODE_URG_C_WRAPPER_H
-#define URG_NODE_URG_C_WRAPPER_H
+#ifndef URG_NODE__URG_C_WRAPPER_HPP_
+#define URG_NODE__URG_C_WRAPPER_HPP_
 
-#include <stdexcept>
-#include <sstream>
-#include <vector>
-#include <string>
-#include <limits>
 #include <chrono>
+#include <limits>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-#include <sensor_msgs/msg/laser_scan.hpp>
-#include <sensor_msgs/msg/multi_echo_laser_scan.hpp>
+#include "rclcpp/rclcpp.hpp"
 
-#include <urg_c/urg_sensor.h>
-#include <urg_c/urg_utils.h>
+#include "sensor_msgs/msg/laser_scan.hpp"
+#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 
-#include <boost/crc.hpp>
-#include <boost/shared_array.hpp>
-
-#include <rclcpp/rclcpp.hpp>
+#include "urg_c/urg_sensor.h"
+#include "urg_c/urg_utils.h"
 
 namespace urg_node
 {
@@ -235,8 +232,11 @@ private:
   urg_t urg_;
   bool started_;
 
-  std::vector<long> data_;
-  std::vector<unsigned short> intensity_;
+  // TODO(karsten1987): Verify the real data type of this
+  // cppcheck complains that `long` isn't type safe.
+  // ignoring this check for now given that this requires changes in urg_c as well.
+  std::vector<long> data_;  // NOLINT
+  std::vector<unsigned short> intensity_;  // NOLINT
 
   bool use_intensity_;
   bool use_multiecho_;
@@ -250,7 +250,7 @@ private:
   rclcpp::Duration user_latency_;
 
   double hardware_clock_;
-  long last_hardware_time_stamp_;
+  long last_hardware_time_stamp_;  // NOLINT
   double hardware_clock_adj_;
   const double adj_alpha_ = .01;
   uint64_t adj_count_;
@@ -260,4 +260,4 @@ private:
 };
 }  // namespace urg_node
 
-#endif  // URG_NODE_URG_C_WRAPPER_H
+#endif  // URG_NODE__URG_C_WRAPPER_HPP_
