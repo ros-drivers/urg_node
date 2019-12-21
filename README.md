@@ -64,7 +64,7 @@ where "laser" is the frame id, which you can set in your urg_node yaml file
 ros2 run robot_state_publisher robot_state_publisher <path to urdf file>
 ```
 
-A urdf file is already included and if you have succesfully ran an `ament build`, the path to urdf file will be :
+A urdf file is already included and if you have succesfully ran an `colcon build`, the path to urdf file will be :
 
 ```
 <path to ros2_ws>/install/share/urg_node/launch/hokuyo_laser.urdf
