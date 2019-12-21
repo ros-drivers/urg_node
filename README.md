@@ -4,7 +4,7 @@ urg_node
 ROS 2 wrapper for the Hokuyo urg_c library.
 
 ## Build instructions
-Install ros2 as per instructions [here](https://github.com/ros2/ros2/wiki/Installation)
+Install ROS 2 as per instructions [here](https://index.ros.org/doc/ros2/Installation/#installationguide)
 
 Create a folder for urg and clone this repo
 
