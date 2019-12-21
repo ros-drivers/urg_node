@@ -269,7 +269,7 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
     try {
       urg_->start();
       RCLCPP_INFO(this->get_logger(), "Streaming data after reconfigure.");
-    } catch (std::runtime_error & e) {
+    } catch (const std::runtime_error & e) {
       RCLCPP_FATAL(this->get_logger(), "Error while reconfiguring : %s", e.what());
       rclcpp::sleep_for(std::chrono::seconds(1));
       rclcpp::shutdown();
