@@ -10,7 +10,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(Boost COMPONENTS crc REQUIRED)
+find_package(Boost COMPONENTS thread REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(laser_proc REQUIRED)
 find_package(rclcpp REQUIRED)
