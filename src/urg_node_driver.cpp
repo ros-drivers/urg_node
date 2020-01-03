@@ -100,8 +100,8 @@ void UrgNode::initSetup()
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
-    auto nh = this->shared_from_this();
-    echoes_pub_ = laser_proc::LaserTransport::advertiseLaser(nh, 20);
+    echoes_pub_ =
+      std::make_unique<laser_proc::LaserPublisher>(this->get_node_topics_interface(), 20);
   } else {
     laser_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", 20);
   }
@@ -601,7 +601,7 @@ void UrgNode::scanThread()
         if (publish_multiecho_) {
           sensor_msgs::msg::MultiEchoLaserScan msg;
           if (urg_->grabScan(msg)) {
-            echoes_pub_.publish(msg);
+            echoes_pub_->publish(msg);
             echoes_freq_->tick();
           } else {
             RCLCPP_WARN(this->get_logger(), "Could not grab multi echo scan.");

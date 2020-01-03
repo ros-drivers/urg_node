@@ -45,7 +45,7 @@
 #include "diagnostic_updater/publisher.hpp"
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 
-#include "laser_proc/laser_transport.hpp"
+#include "laser_proc/laser_publisher.hpp"
 
 #include "rcl_interfaces/msg/parameter.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
@@ -164,7 +164,7 @@ private:
   volatile bool service_yield_;
 
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
-  laser_proc::LaserPublisher echoes_pub_;
+  std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;
   rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
