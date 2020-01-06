@@ -10,52 +10,48 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+# we currently still rely on boost for its `crc` component
+# unfortunately, I haven't found a way to incorporate only crc
+# as a single components, hence including `thread` here.
 find_package(Boost COMPONENTS thread REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(laser_proc REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
-find_package(tf2 REQUIRED)
 find_package(urg_c REQUIRED)
 find_package(urg_node_msgs REQUIRED)
 
-add_library(urg_c_wrapper src/urg_c_wrapper.cpp)
-target_include_directories(urg_c_wrapper
+add_library(urg_node SHARED
+  src/urg_c_wrapper.cpp
+  src/urg_node.cpp
+)
+target_include_directories(urg_node
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${Boost_INCLUDE_DIR}
 )
-target_link_libraries(urg_c_wrapper ${Boost_LIBRARIES})
-ament_target_dependencies(urg_c_wrapper
-  rclcpp
-  sensor_msgs
-  urg_c
-)
-
-add_library(urg_node_driver SHARED src/urg_node_driver.cpp)
-target_include_directories(urg_node_driver
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(urg_node_driver urg_c_wrapper)
-ament_target_dependencies(urg_node_driver
+target_link_libraries(urg_node ${Boost_LIBRARIES})
+ament_target_dependencies(urg_node
   diagnostic_updater
   laser_proc
   rclcpp
+  rclcpp_components
+  sensor_msgs
   std_srvs
+  urg_c
   urg_node_msgs
 )
-
-add_executable(urg_node src/urg_node.cpp)
-target_link_libraries(urg_node urg_node_driver)
+rclcpp_components_register_node(urg_node
+  PLUGIN "urg_node::UrgNode"
+  EXECUTABLE urg_node_driver)
 
 add_executable(getID src/get_id.cpp)
-target_link_libraries(getID urg_node_driver)
+target_link_libraries(getID urg_node)
 
-install(TARGETS urg_node urg_node_driver getID
+install(TARGETS urg_node getID
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -69,7 +65,9 @@ install(PROGRAMS scripts/set_urg_ip.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -83,11 +81,9 @@ ament_export_dependencies(
   laser_proc
   rclcpp
   sensor_msgs
-  std_msgs
   std_srvs
-  tf2
   urg_c
 )
 ament_export_include_directories(include)
-ament_export_libraries(urg_node_driver)
+ament_export_libraries(urg_node)
 ament_package()

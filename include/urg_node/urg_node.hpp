@@ -32,8 +32,8 @@
  * Author: Mike O'Driscoll
  */
 
-#ifndef URG_NODE__URG_NODE_DRIVER_HPP_
-#define URG_NODE__URG_NODE_DRIVER_HPP_
+#ifndef URG_NODE__URG_NODE_HPP_
+#define URG_NODE__URG_NODE_HPP_
 
 #include <chrono>
 #include <iostream>
@@ -62,7 +62,7 @@ namespace urg_node
 class UrgNode : public rclcpp::Node
 {
 public:
-  explicit UrgNode(const std::string & node_name);
+  explicit UrgNode(const rclcpp::NodeOptions & node_options = rclcpp::NodeOptions());
 
   virtual ~UrgNode();
 
@@ -174,4 +174,4 @@ private:
 };
 }  // namespace urg_node
 
-#endif  // URG_NODE__URG_NODE_DRIVER_HPP_
+#endif  // URG_NODE__URG_NODE_HPP_

@@ -23,10 +23,9 @@
   <depend>builtin_interfaces</depend>
   <depend>rosidl_default_generators</depend>
   <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>sensor_msgs</depend>
-  <depend>std_msgs</depend>
   <depend>std_srvs</depend>
-  <depend>tf2</depend>
   <depend>urg_c</depend>
 
   <test_depend>ament_lint_auto</test_depend>

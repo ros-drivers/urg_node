@@ -2,7 +2,6 @@ urg_node:
   ros__parameters:
     angle_max: 3.14
     angle_min: -3.14
-    #ip_address: ""
     ip_port: 10940
     serial_port: "/dev/ttyACM0"
     serial_baud: 115200
