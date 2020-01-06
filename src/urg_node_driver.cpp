@@ -540,7 +540,7 @@ bool UrgNode::connect()
     RCLCPP_ERROR(this->get_logger(), "Error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
-  } catch (std::exception & e) {
+  } catch (const std::exception & e) {
     RCLCPP_ERROR(this->get_logger(), "Unknown error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
