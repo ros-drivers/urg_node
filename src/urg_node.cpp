@@ -271,8 +271,7 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
       RCLCPP_INFO(this->get_logger(), "Streaming data after reconfigure.");
     } catch (const std::runtime_error & e) {
       RCLCPP_FATAL(this->get_logger(), "Error while reconfiguring : %s", e.what());
-      rclcpp::sleep_for(std::chrono::seconds(1));
-      rclcpp::shutdown();
+      throw e;
     }
   }
 
@@ -405,10 +404,9 @@ void UrgNode::calibrate_time_offset()
     rclcpp::Duration latency = urg_->computeLatency(10);
     RCLCPP_INFO(this->get_logger(), "Calibration finished. Latency is: %.4f sec.",
       (double)(latency.nanoseconds() * 1e-9));
-  } catch (std::runtime_error & e) {
+  } catch (const std::runtime_error & e) {
     RCLCPP_FATAL(this->get_logger(), "Could not calibrate time offset: %s", e.what());
-    rclcpp::sleep_for(std::chrono::seconds(1));
-    rclcpp::shutdown();
+    throw e;
   }
 }
 
@@ -536,11 +534,11 @@ bool UrgNode::connect()
     urg_->setUserLatency(default_user_latency_);
 
     return true;
-  } catch (std::runtime_error & e) {
+  } catch (const std::runtime_error & e) {
     RCLCPP_ERROR(this->get_logger(), "Error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
-  } catch (std::exception & e) {
+  } catch (const std::exception & e) {
     RCLCPP_ERROR(this->get_logger(), "Unknown error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
@@ -582,7 +580,7 @@ void UrgNode::scanThread()
       RCLCPP_INFO(this->get_logger(), "Streaming data.");
       // Clear the error count.
       error_count_ = 0;
-    } catch (std::runtime_error & e) {
+    } catch (const std::runtime_error & e) {
       RCLCPP_ERROR(this->get_logger(), "Error starting Hokuyo: %s", e.what());
       urg_.reset();
       rclcpp::sleep_for(std::chrono::seconds(1));
