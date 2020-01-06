@@ -405,7 +405,7 @@ void UrgNode::calibrate_time_offset()
     rclcpp::Duration latency = urg_->computeLatency(10);
     RCLCPP_INFO(this->get_logger(), "Calibration finished. Latency is: %.4f sec.",
       (double)(latency.nanoseconds() * 1e-9));
-  } catch (std::runtime_error & e) {
+  } catch (const std::runtime_error & e) {
     RCLCPP_FATAL(this->get_logger(), "Could not calibrate time offset: %s", e.what());
     rclcpp::sleep_for(std::chrono::seconds(1));
     rclcpp::shutdown();
