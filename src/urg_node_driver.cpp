@@ -536,7 +536,7 @@ bool UrgNode::connect()
     urg_->setUserLatency(default_user_latency_);
 
     return true;
-  } catch (std::runtime_error & e) {
+  } catch (const std::runtime_error & e) {
     RCLCPP_ERROR(this->get_logger(), "Error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
