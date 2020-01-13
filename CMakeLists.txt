@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.5)
 project(urg_node)
 
+find_package(ament_cmake REQUIRED)
+
+if(WIN32)
+  message(WARNING "${PROJECT_NAME} is currently not supported on Windows")
+  ament_package()
+  return()
+endif()
+
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
@@ -9,7 +17,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-find_package(ament_cmake REQUIRED)
 # we currently still rely on boost for its `crc` component
 # unfortunately, I haven't found a way to incorporate only crc
 # as a single components, hence including `thread` here.
