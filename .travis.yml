@@ -3,6 +3,7 @@ services:
 
 install:
   - git clone --quiet --depth 1 https://github.com/mikaelarguedas/ros2ci.git .ros2ci
+  - cp additional_repos.repos .ros2ci/
 
 matrix:
   include:
@@ -11,6 +12,4 @@ matrix:
     - env: JOB_TYPE=eloquent
       script: .ros2ci/travis.bash $JOB_TYPE
     - env: JOB_TYPE=nightly
-      script:
-      - cp additional_repos.repos .ros2ci/
-      - .ros2ci/travis.bash $JOB_TYPE
+      script: .ros2ci/travis.bash $JOB_TYPE
