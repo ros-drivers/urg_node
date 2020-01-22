@@ -11,5 +11,3 @@ matrix:
       script: .ros2ci/travis.bash $JOB_TYPE
     - env: JOB_TYPE=eloquent
       script: .ros2ci/travis.bash $JOB_TYPE
-    - env: JOB_TYPE=nightly
-      script: .ros2ci/travis.bash $JOB_TYPE
