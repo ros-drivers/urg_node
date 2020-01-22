@@ -32,28 +32,39 @@
  * Author: Mike O'Driscoll
  */
 
-#ifndef URG_NODE_URG_NODE_DRIVER_H
-#define URG_NODE_URG_NODE_DRIVER_H
+#ifndef URG_NODE__URG_NODE_HPP_
+#define URG_NODE__URG_NODE_HPP_
 
+#include <chrono>
+#include <iostream>
+#include <memory>
 #include <string>
-#include <ros/ros.h>
-#include <dynamic_reconfigure/server.h>
-#include <laser_proc/LaserTransport.h>
-#include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_updater/publisher.h>
-#include <urg_node/URGConfig.h>
-#include <std_srvs/Trigger.h>
+#include <vector>
 
-#include "urg_node/urg_c_wrapper.h"
+#include "diagnostic_updater/diagnostic_updater.hpp"
+#include "diagnostic_updater/publisher.hpp"
+#include "diagnostic_msgs/msg/diagnostic_status.hpp"
+
+#include "laser_proc/laser_publisher.hpp"
+
+#include "rcl_interfaces/msg/parameter.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
+
+#include "rclcpp/rclcpp.hpp"
+
+#include "std_srvs/srv/trigger.hpp"
+
+#include "urg_node_msgs/msg/status.hpp"
+#include "urg_node/urg_c_wrapper.hpp"
 
 namespace urg_node
 {
-class UrgNode
+class UrgNode : public rclcpp::Node
 {
 public:
-  UrgNode();
-  UrgNode(ros::NodeHandle nh, ros::NodeHandle private_nh);
-  ~UrgNode();
+  explicit UrgNode(const rclcpp::NodeOptions & node_options = rclcpp::NodeOptions());
+
+  virtual ~UrgNode();
 
   /**
    * @brief Start's the nodes threads to run the lidar.
@@ -67,34 +78,45 @@ public:
    */
   bool updateStatus();
 
-private:
   void initSetup();
+
+private:
   bool connect();
-  bool reconfigure_callback(urg_node::URGConfig& config, int level);
-  void update_reconfigure_limits();
+
+  void reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event);
+
+  rcl_interfaces::msg::SetParametersResult param_change_callback(
+    const std::vector<rclcpp::Parameter> parameters);
+
   void calibrate_time_offset();
+
   void updateDiagnostics();
-  void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper &stat);
+
+  void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat);
+
   void scanThread();
 
-  bool statusCallback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
+  void statusCallback(
+    const std::shared_ptr<rmw_request_id_t> requestHeader,
+    const std_srvs::srv::Trigger::Request::SharedPtr req,
+    const std_srvs::srv::Trigger::Response::SharedPtr res);
 
-  ros::NodeHandle nh_;
-  ros::NodeHandle pnh_;
 
-  boost::thread diagnostics_thread_;
-  boost::thread scan_thread_;
+  std::thread diagnostics_thread_;
+  std::thread scan_thread_;
 
-  boost::shared_ptr<urg_node::URGCWrapper> urg_;
-  boost::shared_ptr<dynamic_reconfigure::Server<urg_node::URGConfig> > srv_;  ///< Dynamic reconfigure server
-  boost::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
-  boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
-  boost::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
+  std::unique_ptr<urg_node::URGCWrapper> urg_;
 
-  boost::mutex lidar_mutex_;
+  diagnostic_updater::Updater diagnostic_updater_;
+  std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
+  std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
 
-  /* Non-const device properties.  If you poll the driver for these
-  * while scanning is running, then the scan will probably fail.
+  std::mutex lidar_mutex_;
+
+  /*
+   * Non-const device properties.
+   * If you poll the driver for these
+   * while scanning is running, then the scan will probably fail.
   */
   std::string device_status_;
   std::string vendor_name_;
@@ -104,35 +126,52 @@ private:
   std::string protocol_version_;
   std::string device_id_;
   uint16_t error_code_;
+  int error_count_;
+  int error_limit_;
   bool lockout_status_;
 
-  int error_count_;
   double freq_min_;
   bool close_diagnostics_;
   bool close_scan_;
 
-  int ip_port_;
   std::string ip_address_;
+  int ip_port_;
   std::string serial_port_;
   int serial_baud_;
+
   bool calibrate_time_;
   bool synchronize_time_;
   bool publish_intensity_;
   bool publish_multiecho_;
-  int error_limit_;
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
   bool detailed_status_;
+  double angle_min_;
+  double angle_max_;
+  /**
+   * Divide the number of rays per scan by cluster_ (if cluster_ == 10, you get 1/10 ray per scan)
+   * */
+  int cluster_;  // default : 1, range : 1 to 100
+  /** Reduce the rate of scans */
+  int skip_;  // default : 0, range : 0 to 9
+
+  /** The default user latency value. */
+  double default_user_latency_;
+
+  /** The laser tf frame id. */
+  std::string laser_frame_id_;
 
   volatile bool service_yield_;
 
-  ros::Publisher laser_pub_;
-  laser_proc::LaserPublisher echoes_pub_;
-  ros::Publisher status_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
+  std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;
+  rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
 
-  ros::ServiceServer status_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
+
+  /** The parameters client to catch modification of parameters during runtime */
+  rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;
 };
-
 }  // namespace urg_node
 
-#endif  // URG_NODE_URG_NODE_DRIVER_H
+#endif  // URG_NODE__URG_NODE_HPP_

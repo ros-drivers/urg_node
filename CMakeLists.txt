@@ -1,84 +1,96 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(urg_node)
 
-find_package(catkin REQUIRED COMPONENTS
-  diagnostic_updater dynamic_reconfigure laser_proc message_generation
-  nodelet rosconsole roscpp sensor_msgs std_msgs std_srvs tf urg_c
-)
-set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++11")
+find_package(ament_cmake REQUIRED)
 
-# Dynamic reconfigure support
-generate_dynamic_reconfigure_options(cfg/URG.cfg)
-
-add_message_files(FILES
-  Status.msg
-)
-
-generate_messages(
-  DEPENDENCIES std_msgs
-)
-
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES urg_c_wrapper urg_node_driver
-  CATKIN_DEPENDS dynamic_reconfigure laser_proc message_runtime nodelet rosconsole
-  roscpp sensor_msgs std_msgs std_srvs urg_c
-  DEPENDS
-)
-
-
-include_directories(include ${catkin_INCLUDE_DIRS})
-
-## Declare a cpp library
-add_library(urg_c_wrapper src/urg_c_wrapper.cpp)
-target_link_libraries(urg_c_wrapper ${catkin_LIBRARIES})
-
-# Declare the cpp as a lib also
-add_library(urg_node_driver src/urg_node_driver.cpp)
-add_dependencies(urg_node_driver ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
-target_link_libraries(urg_node_driver urg_c_wrapper ${catkin_LIBRARIES})
-
-## Declare a cpp executable
-add_executable(urg_node src/urg_node.cpp)
-target_link_libraries(urg_node urg_node_driver ${catkin_LIBRARIES})
-
-## Declare getID tool
-add_executable(getID src/getID.cpp)
-target_link_libraries(getID urg_c_wrapper ${catkin_LIBRARIES})
-
-## Mark executables and/or libraries for installation
-install(TARGETS urg_c_wrapper urg_node urg_node_driver getID
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(
-  DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-## Mark cpp header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/
-   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-   FILES_MATCHING PATTERN "*.h"
-   PATTERN ".svn" EXCLUDE
-)
-
-## Install script to set IP addresses
-install(PROGRAMS
-   scripts/set_urg_ip.py
-   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-if(CATKIN_ENABLE_TESTING)
-  find_package(roslint)
-  # Ignore long -> int32_t warning, urg_c driver uses
-  # long, etc. Wrapper must also use these
-  set(ROSLINT_CPP_OPTS "--filter=-runtime/references,-runtime/int")
-  roslint_cpp()
-  roslint_add_test()
-
-  find_package(roslaunch REQUIRED)
-  roslaunch_add_file_check(launch/urg_lidar.launch)
+if(WIN32)
+  message(WARNING "${PROJECT_NAME} is currently not supported on Windows")
+  ament_package()
+  return()
 endif()
+
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# we currently still rely on boost for its `crc` component
+# unfortunately, I haven't found a way to incorporate only crc
+# as a single components, hence including `thread` here.
+find_package(Boost COMPONENTS thread REQUIRED)
+find_package(diagnostic_updater REQUIRED)
+find_package(laser_proc REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(urg_c REQUIRED)
+find_package(urg_node_msgs REQUIRED)
+
+add_library(urg_node SHARED
+  src/urg_c_wrapper.cpp
+  src/urg_node.cpp
+)
+target_include_directories(urg_node
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${Boost_INCLUDE_DIR}
+)
+target_link_libraries(urg_node ${Boost_LIBRARIES})
+ament_target_dependencies(urg_node
+  diagnostic_updater
+  laser_proc
+  rclcpp
+  rclcpp_components
+  sensor_msgs
+  std_srvs
+  urg_c
+  urg_node_msgs
+)
+rclcpp_components_register_node(urg_node
+  PLUGIN "urg_node::UrgNode"
+  EXECUTABLE urg_node_driver)
+
+add_executable(getID src/get_id.cpp)
+target_link_libraries(getID urg_node)
+
+install(TARGETS urg_node getID
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+install(PROGRAMS scripts/set_urg_ip.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  set(ament_cmake_copyright_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_export_dependencies(urg_node_msgs)
+ament_export_dependencies(
+  diagnostic_updater
+  laser_proc
+  rclcpp
+  sensor_msgs
+  std_srvs
+  urg_c
+)
+ament_export_include_directories(include)
+ament_export_libraries(urg_node)
+ament_package()

@@ -31,19 +31,23 @@
  * Author: Chad Rockey
  */
 
-#ifndef URG_NODE_URG_C_WRAPPER_H
-#define URG_NODE_URG_C_WRAPPER_H
+#ifndef URG_NODE__URG_C_WRAPPER_HPP_
+#define URG_NODE__URG_C_WRAPPER_HPP_
 
-#include <stdexcept>
+#include <chrono>
+#include <limits>
 #include <sstream>
-#include <vector>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/MultiEchoLaserScan.h>
+#include "rclcpp/rclcpp.hpp"
 
-#include <urg_c/urg_sensor.h>
-#include <urg_c/urg_utils.h>
+#include "sensor_msgs/msg/laser_scan.hpp"
+#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
+
+#include "urg_c/urg_sensor.h"
+#include "urg_c/urg_utils.h"
 
 namespace urg_node
 {
@@ -86,14 +90,30 @@ public:
   float angle;
 };
 
+struct EthernetConnection
+{
+  std::string ip_address;
+  int ip_port;
+};
+
+struct SerialConnection
+{
+  std::string serial_port;
+  int serial_baud;
+};
+
 class URGCWrapper
 {
 public:
-  URGCWrapper(const std::string& ip_address, const int ip_port,
-      bool& using_intensity, bool& using_multiecho, bool synchronize_time);
+  URGCWrapper(
+    const EthernetConnection & connection,
+    bool & using_intensity, bool & using_multiecho,
+    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
-  URGCWrapper(const int serial_baud, const std::string& serial_port,
-      bool& using_intensity, bool& using_multiecho, bool synchronize_time);
+  URGCWrapper(
+    const SerialConnection & connection,
+    bool & using_intensity, bool & using_multiecho,
+    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
   ~URGCWrapper();
 
@@ -141,52 +161,44 @@ public:
 
   std::string getDeviceID();
 
-  ros::Duration getComputedLatency() const;
+  rclcpp::Duration getComputedLatency() const;
 
-  ros::Duration getUserTimeOffset() const;
+  rclcpp::Duration getUserTimeOffset() const;
 
   std::string getSensorStatus();
 
   std::string getSensorState();
 
-  void setFrameId(const std::string& frame_id);
+  void setFrameId(const std::string & frame_id);
 
   void setUserLatency(const double latency);
 
-  bool setAngleLimitsAndCluster(double& angle_min, double& angle_max, int cluster);
+  bool setAngleLimitsAndCluster(double & angle_min, double & angle_max, int cluster);
 
-  bool setSkip(int skip);
+  void setSkip(int skip);
 
-  ros::Duration computeLatency(size_t num_measurements);
+  rclcpp::Duration computeLatency(size_t num_measurements);
 
-  bool grabScan(const sensor_msgs::LaserScanPtr& msg);
+  bool grabScan(sensor_msgs::msg::LaserScan & msg);
 
-  bool grabScan(const sensor_msgs::MultiEchoLaserScanPtr& msg);
+  bool grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg);
 
-  bool getAR00Status(URGStatus& status);
+  bool getAR00Status(URGStatus & status);
 
-  bool getDL00Status(UrgDetectionReport& report);
+  bool getDL00Status(UrgDetectionReport & report);
 
 private:
-  void initialize(bool& using_intensity, bool& using_multiecho, bool synchronize_time);
+  void initialize(bool & using_intensity, bool & using_multiecho);
 
   bool isIntensitySupported();
 
   bool isMultiEchoSupported();
 
-  ros::Duration getAngularTimeOffset() const;
+  rclcpp::Duration getAngularTimeOffset() const;
 
-  ros::Duration getNativeClockOffset(size_t num_measurements);
+  rclcpp::Duration getNativeClockOffset(size_t num_measurements);
 
-  ros::Duration getTimeStampOffset(size_t num_measurements);
-
-  /**
-   * @brief Get synchronized time stamp using hardware clock
-   * @param time_stamp The current hardware time stamp.
-   * @param system_time_stamp The current system time stamp.
-   * @returns ros::Time stamp representing synchronized time
-   */
-  ros::Time getSynchronizedTime(long time_stamp, long long system_time_stamp);
+  rclcpp::Duration getTimeStampOffset(size_t num_measurements);
 
   /**
    * @brief Set the Hokuyo URG-04LX from SCIP 1.1 mode to SCIP 2.0 mode.
@@ -200,7 +212,7 @@ private:
    * @param size The size of the bytes array.
    * @return the calculated CRC of the bytes.
    */
-  uint16_t checkCRC(const char* bytes, const uint32_t size);
+  uint16_t checkCRC(const char * bytes, const uint32_t size);
 
   /**
    * @brief Send an arbitrary serial command to the lidar. These commands
@@ -210,13 +222,21 @@ private:
    */
   std::string sendCommand(std::string cmd);
 
+  std::string ip_address_;
+  int ip_port_;
+  std::string serial_port_;
+  int serial_baud_;
+
   std::string frame_id_;  ///< Output frame_id for each laserscan.
 
   urg_t urg_;
   bool started_;
 
-  std::vector<long> data_;
-  std::vector<unsigned short> intensity_;
+  // TODO(karsten1987): Verify the real data type of this
+  // cppcheck complains that `long` isn't type safe.
+  // ignoring this check for now given that this requires changes in urg_c as well.
+  std::vector<long> data_;  // NOLINT
+  std::vector<unsigned short> intensity_;  // NOLINT
 
   bool use_intensity_;
   bool use_multiecho_;
@@ -226,22 +246,18 @@ private:
   int cluster_;
   int skip_;
 
-  ros::Duration system_latency_;
-  ros::Duration user_latency_;
+  rclcpp::Duration system_latency_;
+  rclcpp::Duration user_latency_;
 
-  // used for clock synchronziation
-  bool synchronize_time_;
   double hardware_clock_;
-  long last_hardware_time_stamp_;
+  long last_hardware_time_stamp_;  // NOLINT
   double hardware_clock_adj_;
   const double adj_alpha_ = .01;
   uint64_t adj_count_;
 
-  std::string ip_address_;
-  int ip_port_;
-  std::string serial_port_;
-  int serial_baud_;
+  /// Logger object used for debug info
+  rclcpp::Logger logger_;
 };
 }  // namespace urg_node
 
-#endif  // URG_NODE_URG_C_WRAPPER_H
+#endif  // URG_NODE__URG_C_WRAPPER_HPP_
