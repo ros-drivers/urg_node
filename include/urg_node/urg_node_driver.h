@@ -119,6 +119,8 @@ private:
   bool synchronize_time_;
   bool publish_intensity_;
   bool publish_multiecho_;
+  bool intensity_enabled_;
+  bool multiecho_enabled_;
   int error_limit_;
   double diagnostics_tolerance_;
   double diagnostics_window_time_;
