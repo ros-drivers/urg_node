@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.12 (2020-03-14)
+-------------------
 * Updated roslint to only check files in this repo.
 * Updated TravisCI config.
 * fix(updateStatus): Update status on diagnostics update
