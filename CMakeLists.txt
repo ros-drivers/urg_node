@@ -76,7 +76,14 @@ if(CATKIN_ENABLE_TESTING)
   # Ignore long -> int32_t warning, urg_c driver uses
   # long, etc. Wrapper must also use these
   set(ROSLINT_CPP_OPTS "--filter=-runtime/references,-runtime/int")
-  roslint_cpp()
+  roslint_cpp(
+    include/urg_node/urg_c_wrapper.h
+    include/urg_node/urg_node_driver.h
+    src/getID.cpp
+    src/urg_c_wrapper.cpp
+    src/urg_node_driver.cpp
+    urg_node.cpp
+  )
   roslint_add_test()
 
   find_package(roslaunch REQUIRED)
