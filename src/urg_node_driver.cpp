@@ -299,6 +299,9 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
     return;
   }
 
+  // Update status for diagnostics information
+  updateStatus();
+
   if (!urg_->getIPAddress().empty())
   {
     stat.add("IP Address", urg_->getIPAddress());
