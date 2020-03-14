@@ -82,7 +82,7 @@ if(CATKIN_ENABLE_TESTING)
     src/getID.cpp
     src/urg_c_wrapper.cpp
     src/urg_node_driver.cpp
-    urg_node.cpp
+    src/urg_node.cpp
   )
   roslint_add_test()
 
