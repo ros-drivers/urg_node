@@ -2,6 +2,17 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* migrate ros2 devel (`#50 <https://github.com/ros-drivers/urg_node/issues/50>`_)
+* Merge pull request `#42 <https://github.com/ros-drivers/urg_node/issues/42>`_ from BadgerTechnologies/detect-time-warp-and-reset
+* synchronize_time: reset when clock is warped
+* Merge pull request `#41 <https://github.com/ros-drivers/urg_node/issues/41>`_ from BadgerTechnologies/synchronize-time
+* synchronize system clock to hardware time
+* Add Travis config.
+* Fixed linter errors.
+* Contributors: Aarush Gupta, aswinthomas, Brett, C. Andy Martin, Chris Lalancette, Gu Chao Jie, Karsten Knese, Marc-Antoine Testier, Tony Baltovski, Zoe
+
 0.1.11 (2017-10-17)
 -------------------
 * Add support for URG-04LX in SCIP 1.1 mode
