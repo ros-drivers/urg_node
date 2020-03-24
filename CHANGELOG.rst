@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2020-03-24)
+------------------
 * migrate ros2 devel (`#50 <https://github.com/ros-drivers/urg_node/issues/50>`_)
 * Merge pull request `#42 <https://github.com/ros-drivers/urg_node/issues/42>`_ from BadgerTechnologies/detect-time-warp-and-reset
 * synchronize_time: reset when clock is warped
