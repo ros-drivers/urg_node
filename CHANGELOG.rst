@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.13 (2020-03-27)
+-------------------
 * Revert "fix(updateStatus): Update status on diagnostics update"
 * Contributors: Tony Baltovski
 
