@@ -365,20 +365,22 @@ bool UrgNode::connect()
   try
   {
     urg_.reset();  // Clear any previous connections();
+    intensity_enabled_ = publish_intensity_;
+    multiecho_enabled_ = publish_multiecho_;
     if (!ip_address_.empty())
     {
       urg_.reset(new urg_node::URGCWrapper(ip_address_, ip_port_,
-          publish_intensity_, publish_multiecho_, synchronize_time_));
+          intensity_enabled_, multiecho_enabled_, synchronize_time_));
     }
     else
     {
       urg_.reset(new urg_node::URGCWrapper(serial_baud_, serial_port_,
-          publish_intensity_, publish_multiecho_, synchronize_time_));
+          intensity_enabled_, multiecho_enabled_, synchronize_time_));
     }
 
     std::stringstream ss;
     ss << "Connected to";
-    if (publish_multiecho_)
+    if (multiecho_enabled_)
     {
       ss << " multiecho";
     }
@@ -391,7 +393,7 @@ bool UrgNode::connect()
       ss << " serial";
     }
     ss << " device with";
-    if (publish_intensity_)
+    if (intensity_enabled_)
     {
       ss << " intensity and";
     }
@@ -508,7 +510,7 @@ void UrgNode::scanThread()
       try
       {
         boost::mutex::scoped_lock lock(lidar_mutex_);
-        if (publish_multiecho_)
+        if (multiecho_enabled_)
         {
           const sensor_msgs::MultiEchoLaserScanPtr msg(new sensor_msgs::MultiEchoLaserScan());
           if (urg_->grabScan(msg))
@@ -551,7 +553,7 @@ void UrgNode::scanThread()
         service_yield_ = false;
       }
 
-      // Reestablish conneciton if things seem to have gone wrong.
+      // Reestablish connection if things seem to have gone wrong.
       if (error_count_ > error_limit_)
       {
         ROS_ERROR_THROTTLE(10.0, "Error count exceeded limit, reconnecting.");
@@ -576,7 +578,7 @@ void UrgNode::run()
     diagnostics_thread_.join();
   }
 
-  if (publish_multiecho_)
+  if (multiecho_enabled_)
   {
     echoes_freq_.reset(new diagnostic_updater::HeaderlessTopicDiagnostic("Laser Echoes",
           *diagnostic_updater_,
