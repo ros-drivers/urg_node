@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2014 Unbounded Robotics Inc. 
+# Copyright (c) 2014 Unbounded Robotics Inc.
 # All right reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   * Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   * Neither the name of Unbounded Robotics Inc. nor the names of its 
+#   * Neither the name of Unbounded Robotics Inc. nor the names of its
 #     contributors may be used to endorse or promote products derived 
 #     from this software without specific prior written permission.
 #
@@ -32,23 +32,20 @@ Change the IP address of a Hokuyo URG Laser
 
 import argparse
 import socket
+import ipaddress
 
 def parse_and_validate_ipv4(argument, name):
     """
-    Each address must have 4 
+    Validate IP by parsing it with ipaddress
+    If not valid, ipaddress will raise a ValueError
     """
-    if len(argument.split(".")) != 4:
-        print("Invalid %s, must be of the form xxx.yyy.zzz.www" % name)
-        exit(-1)
-    parsed = ""
-    for x in argument.split("."):
-        if len(x) > 3:
-            print("Invalid %s, must be of the form xxx.yyy.zzz.www" % name)
-            exit(-1)
-        while len(x) < 3:
-            x = "0" + x
-        parsed += x
-    return parsed
+    ip = str(ipaddress.ip_address(argument))
+    parsed_ip = ""
+    for octet in ip.split("."):
+        filled_octet = octet.zfill(3)
+        parsed_ip += filled_octet
+
+    return parsed_ip
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
