@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.14 (2020-06-04)
+-------------------
 * Bumped CMake version.
 * Removed trailing whitespace.
 * Contributors: Tony Baltovski
