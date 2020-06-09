@@ -101,7 +101,7 @@ private:
     const std_srvs::srv::Trigger::Request::SharedPtr req,
     const std_srvs::srv::Trigger::Response::SharedPtr res);
 
-
+  std::thread run_thread_;
   std::thread diagnostics_thread_;
   std::thread scan_thread_;
 
