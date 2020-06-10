@@ -125,8 +125,7 @@ void UrgNode::initSetup()
 
 UrgNode::~UrgNode()
 {
-  if (run_thread_.joinable())
-  {
+  if (run_thread_.joinable()) {
     run_thread_.join();
   }
   if (diagnostics_thread_.joinable()) {
