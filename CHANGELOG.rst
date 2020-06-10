@@ -2,6 +2,16 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* node name is now urg_node_driver (`#70 <https://github.com/ros-drivers/urg_node/issues/70>`_)
+  The node was renamed as part of the composable refactor
+  At runtime, it still defaults to urg_node as the graph
+  name
+* call run in a thread, fixes `#66 <https://github.com/ros-drivers/urg_node/issues/66>`_ (`#71 <https://github.com/ros-drivers/urg_node/issues/71>`_)
+* add myself as maintainer for ros2 (`#73 <https://github.com/ros-drivers/urg_node/issues/73>`_)
+* Contributors: Michael Ferguson
+
 1.0.0 (2020-03-24)
 ------------------
 * migrate ros2 devel (`#50 <https://github.com/ros-drivers/urg_node/issues/50>`_)
