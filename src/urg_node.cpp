@@ -118,10 +118,16 @@ void UrgNode::initSetup()
 
   this->set_on_parameters_set_callback(std::bind(&UrgNode::param_change_callback, this,
     std::placeholders::_1));
+
+  // Put this in a separate thread since it might take a while to connect
+  run_thread_ = std::thread(std::bind(&UrgNode::run, this));
 }
 
 UrgNode::~UrgNode()
 {
+  if (run_thread_.joinable()) {
+    run_thread_.join();
+  }
   if (diagnostics_thread_.joinable()) {
     // Clean up our diagnostics thread.
     close_diagnostics_ = true;
