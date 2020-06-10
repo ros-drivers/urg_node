@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2020-06-10)
+------------------
 * node name is now urg_node_driver (`#70 <https://github.com/ros-drivers/urg_node/issues/70>`_)
   The node was renamed as part of the composable refactor
   At runtime, it still defaults to urg_node as the graph
