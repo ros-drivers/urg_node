@@ -4,6 +4,7 @@
   <version>1.0.0</version>
   <description>urg_node</description>
 
+  <maintainer email="mfergs7@gmail.com">Michael Ferguson</maintainer>
   <maintainer email="tony.baltovski@gmail.com">Tony Baltovski</maintainer>
 
   <license>BSD</license>
