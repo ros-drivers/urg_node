@@ -2,6 +2,12 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* uncrustify for f/r (`#74 <https://github.com/ros-drivers/urg_node/issues/74>`_)
+* fix deprecation warning (`#69 <https://github.com/ros-drivers/urg_node/issues/69>`_)
+* Contributors: Michael Ferguson
+
 1.0.1 (2020-06-10)
 ------------------
 * node name is now urg_node_driver (`#70 <https://github.com/ros-drivers/urg_node/issues/70>`_)
