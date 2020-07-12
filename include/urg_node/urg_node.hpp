@@ -169,8 +169,8 @@ private:
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
 
-  /** The parameters client to catch modification of parameters during runtime */
-  rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;
+  //  Need to hold reference to callback, or it gets deregistered
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameters_callback_handle_;
 };
 }  // namespace urg_node
 

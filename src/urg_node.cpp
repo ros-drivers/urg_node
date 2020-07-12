@@ -116,8 +116,9 @@ void UrgNode::initSetup()
 
   diagnostic_updater_.add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
 
-  this->set_on_parameters_set_callback(std::bind(&UrgNode::param_change_callback, this,
-    std::placeholders::_1));
+  parameters_callback_handle_ =
+    this->add_on_set_parameters_callback(std::bind(&UrgNode::param_change_callback, this,
+      std::placeholders::_1));
 
   // Put this in a separate thread since it might take a while to connect
   run_thread_ = std::thread(std::bind(&UrgNode::run, this));
