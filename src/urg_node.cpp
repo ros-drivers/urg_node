@@ -505,13 +505,15 @@ bool UrgNode::connect()
     if (!ip_address_.empty()) {
       EthernetConnection connection{ip_address_, ip_port_};
       urg_.reset(
-        new urg_node::URGCWrapper(connection,
-        publish_intensity_, publish_multiecho_, this->get_logger()));
+        new urg_node::URGCWrapper(
+          connection,
+          publish_intensity_, publish_multiecho_, this->get_logger()));
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
       urg_.reset(
-        new urg_node::URGCWrapper(connection,
-        publish_intensity_, publish_multiecho_, this->get_logger()));
+        new urg_node::URGCWrapper(
+          connection,
+          publish_intensity_, publish_multiecho_, this->get_logger()));
     }
 
     std::stringstream ss;
