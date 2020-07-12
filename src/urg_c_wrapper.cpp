@@ -216,8 +216,9 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
   unsigned long long system_time_stamp = 0;  // NOLINT
 
   if (use_intensity_) {
-    num_beams = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
-        &system_time_stamp);
+    num_beams = urg_get_distance_intensity(
+      &urg_, &data_[0], &intensity_[0], &time_stamp,
+      &system_time_stamp);
   } else {
     num_beams = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
@@ -266,8 +267,9 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
   unsigned long long system_time_stamp;  // NOLINT
 
   if (use_intensity_) {
-    num_beams = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
-        &system_time_stamp);
+    num_beams = urg_get_multiecho_intensity(
+      &urg_, &data_[0], &intensity_[0], &time_stamp,
+      &system_time_stamp);
   } else {
     num_beams = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
@@ -582,7 +584,8 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   // Bounds check the size, we really shouldn't exceed 8703 bytes
   // based on the currently known messages on the hokuyo documentations
   if (arr_size > 10000) {
-    RCLCPP_ERROR(logger_, "Buffer creation bounds exceeded, shouldn't allocate: %lu bytes",
+    RCLCPP_ERROR(
+      logger_, "Buffer creation bounds exceeded, shouldn't allocate: %lu bytes",
       arr_size);
     result.clear();
     return result;
@@ -884,7 +887,8 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
 
   // Get median value
   // Sort vector using nth_element (partially sorts up to the median index)
-  std::nth_element(time_offsets.begin(),
+  std::nth_element(
+    time_offsets.begin(),
     time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   system_latency_ = time_offsets[time_offsets.size() / 2];
   // Angular time offset makes the output comparable to that of hokuyo_node
@@ -925,7 +929,8 @@ rclcpp::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
 
   // Return median value
   // Sort vector using nth_element (partially sorts up to the median index)
-  std::nth_element(time_offsets.begin(),
+  std::nth_element(
+    time_offsets.begin(),
     time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
 }
@@ -949,13 +954,15 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
     if (measurement_type_ == URG_DISTANCE) {
       ret = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
     } else if (measurement_type_ == URG_DISTANCE_INTENSITY) {
-      ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
-          &system_time_stamp);
+      ret = urg_get_distance_intensity(
+        &urg_, &data_[0], &intensity_[0], &time_stamp,
+        &system_time_stamp);
     } else if (measurement_type_ == URG_MULTIECHO) {
       ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
     } else if (measurement_type_ == URG_MULTIECHO_INTENSITY) {
-      ret = urg_get_multiecho_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp,
-          &system_time_stamp);
+      ret = urg_get_multiecho_intensity(
+        &urg_, &data_[0], &intensity_[0], &time_stamp,
+        &system_time_stamp);
     }
 
     if (ret <= 0) {
@@ -974,7 +981,8 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 
   // Return median value
   // Sort vector using nth_element (partially sorts up to the median index)
-  std::nth_element(time_offsets.begin(),
+  std::nth_element(
+    time_offsets.begin(),
     time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
 }
