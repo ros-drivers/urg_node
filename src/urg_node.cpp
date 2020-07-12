@@ -86,13 +86,16 @@ void UrgNode::initSetup()
   publish_intensity_ = this->declare_parameter<bool>("publish_intensity", publish_intensity_);
   publish_multiecho_ = this->declare_parameter<bool>("publish_multiecho", publish_multiecho_);
   error_limit_ = this->declare_parameter<int>("error_limit", error_limit_);
-  diagnostics_tolerance_ = this->declare_parameter<double>("diagnostics_tolerance",
-      diagnostics_tolerance_);
-  diagnostics_window_time_ = this->declare_parameter<double>("diagnostics_window_time",
-      diagnostics_window_time_);
+  diagnostics_tolerance_ = this->declare_parameter<double>(
+    "diagnostics_tolerance",
+    diagnostics_tolerance_);
+  diagnostics_window_time_ = this->declare_parameter<double>(
+    "diagnostics_window_time",
+    diagnostics_window_time_);
   detailed_status_ = this->declare_parameter<bool>("get_detailed_status", detailed_status_);
-  default_user_latency_ = this->declare_parameter<double>("default_user_latency",
-      default_user_latency_);
+  default_user_latency_ = this->declare_parameter<double>(
+    "default_user_latency",
+    default_user_latency_);
   angle_min_ = this->declare_parameter<double>("angle_min", angle_min_);
   angle_max_ = this->declare_parameter<double>("angle_max", angle_max_);
   skip_ = this->declare_parameter<int>("skip", skip_);
@@ -108,16 +111,18 @@ void UrgNode::initSetup()
 
   status_service_ = this->create_service<std_srvs::srv::Trigger>(
     "update_laser_status",
-    std::bind(&UrgNode::statusCallback, this,
-    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    std::bind(
+      &UrgNode::statusCallback, this,
+      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
   // TODO(karsten1987): ros2 does not have latched topics yet, need to play with QoS
   status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);
 
   diagnostic_updater_.add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
 
-  parameters_callback_handle_ =
-    this->add_on_set_parameters_callback(std::bind(&UrgNode::param_change_callback, this,
+  parameters_callback_handle_ = this->add_on_set_parameters_callback(
+    std::bind(
+      &UrgNode::param_change_callback, this,
       std::placeholders::_1));
 
   // Put this in a separate thread since it might take a while to connect
@@ -223,7 +228,8 @@ void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr e
   // Concat the new parameters (I guess there shouldn't be any though)
   // with the changed parameters into one vector
   std::vector<rcl_interfaces::msg::Parameter> parameter_vec = event->new_parameters;
-  parameter_vec.insert(parameter_vec.end(),
+  parameter_vec.insert(
+    parameter_vec.end(),
     event->changed_parameters.begin(), event->changed_parameters.end());
 
   // Some parameter change require to stop and start the driver to be applied
@@ -409,7 +415,8 @@ void UrgNode::calibrate_time_offset()
     RCLCPP_INFO(this->get_logger(), "Starting calibration. This will take a few seconds.");
     RCLCPP_WARN(this->get_logger(), "Time calibration is still experimental.");
     rclcpp::Duration latency = urg_->computeLatency(10);
-    RCLCPP_INFO(this->get_logger(), "Calibration finished. Latency is: %.4f sec.",
+    RCLCPP_INFO(
+      this->get_logger(), "Calibration finished. Latency is: %.4f sec.",
       (double)(latency.nanoseconds() * 1e-9));
   } catch (const std::runtime_error & e) {
     RCLCPP_FATAL(this->get_logger(), "Could not calibrate time offset: %s", e.what());
@@ -430,7 +437,8 @@ void UrgNode::updateDiagnostics()
 void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
   if (!urg_) {
-    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Not Connected");
     return;
   }
@@ -444,23 +452,28 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
   }
 
   if (!urg_->isStarted()) {
-    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Not Connected: " + device_status_);
   } else if (device_status_ != std::string("Sensor works well.") &&  //NOLINT
     device_status_ != std::string("Stable 000 no error.") &&
     device_status_ != std::string("sensor is working normally"))
   {
-    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Abnormal status: " + device_status_);
   } else if (error_code_ != 0) {
-    stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+    stat.summaryf(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Lidar reporting error code: %X",
       error_code_);
   } else if (lockout_status_) {
-    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Lidar locked out.");
   } else {
-    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK,
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::OK,
       "Streaming");
   }
 
@@ -491,12 +504,16 @@ bool UrgNode::connect()
     urg_.reset();  // Clear any previous connections();
     if (!ip_address_.empty()) {
       EthernetConnection connection{ip_address_, ip_port_};
-      urg_.reset(new urg_node::URGCWrapper(connection,
-        publish_intensity_, publish_multiecho_, this->get_logger()));
+      urg_.reset(
+        new urg_node::URGCWrapper(
+          connection,
+          publish_intensity_, publish_multiecho_, this->get_logger()));
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
-      urg_.reset(new urg_node::URGCWrapper(connection,
-        publish_intensity_, publish_multiecho_, this->get_logger()));
+      urg_.reset(
+        new urg_node::URGCWrapper(
+          connection,
+          publish_intensity_, publish_multiecho_, this->get_logger()));
     }
 
     std::stringstream ss;
@@ -658,15 +675,21 @@ void UrgNode::run()
   }
 
   if (publish_multiecho_) {
-    echoes_freq_.reset(new diagnostic_updater::HeaderlessTopicDiagnostic("Laser Echoes",
-      diagnostic_updater_,
-      FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance_,
-      diagnostics_window_time_)));
+    echoes_freq_.reset(
+      new diagnostic_updater::HeaderlessTopicDiagnostic(
+        "Laser Echoes",
+        diagnostic_updater_,
+        FrequencyStatusParam(
+          &freq_min_, &freq_min_, diagnostics_tolerance_,
+          diagnostics_window_time_)));
   } else {
-    laser_freq_.reset(new diagnostic_updater::HeaderlessTopicDiagnostic("Laser Scan",
-      diagnostic_updater_,
-      FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance_,
-      diagnostics_window_time_)));
+    laser_freq_.reset(
+      new diagnostic_updater::HeaderlessTopicDiagnostic(
+        "Laser Scan",
+        diagnostic_updater_,
+        FrequencyStatusParam(
+          &freq_min_, &freq_min_, diagnostics_tolerance_,
+          diagnostics_window_time_)));
   }
 
   //// Now that we are setup, kick off diagnostics.

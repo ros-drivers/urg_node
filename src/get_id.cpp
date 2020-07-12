@@ -77,7 +77,8 @@ std::vector<std::string> split(const std::string & s, char delim)
 int main(int argc, char ** argv)
 {
   if (argc < 2 || argc > 3) {
-    fprintf(stderr,
+    fprintf(
+      stderr,
       "usage: getID /dev/ttyACM? [quiet]\n"
       "Outputs the device ID of a hokuyo at /dev/ttyACM? or IP address"
       " (specified as 192.168.1.6:10940). Add a second argument for script friendly output.\n");
@@ -129,12 +130,16 @@ int main(int argc, char ** argv)
     try {
       if (ip_address != "") {
         urg_node::EthernetConnection connection{ip_address, ip_port};
-        urg_.reset(new urg_node::URGCWrapper(connection,
-          publish_intensity, publish_multiecho));
+        urg_.reset(
+          new urg_node::URGCWrapper(
+            connection,
+            publish_intensity, publish_multiecho));
       } else {
         urg_node::SerialConnection connection{serial_port, serial_baud};
-        urg_.reset(new urg_node::URGCWrapper(connection,
-          publish_intensity, publish_multiecho));
+        urg_.reset(
+          new urg_node::URGCWrapper(
+            connection,
+            publish_intensity, publish_multiecho));
       }
       std::string device_id = urg_->getDeviceID();
       if (verbose) {
