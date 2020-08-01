@@ -18,9 +18,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # we currently still rely on boost for its `crc` component
-# unfortunately, I haven't found a way to incorporate only crc
-# as a single components, hence including `thread` here.
-find_package(Boost COMPONENTS thread REQUIRED)
+find_package(Boost REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(laser_proc REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -38,9 +36,7 @@ target_include_directories(urg_node
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-  ${Boost_INCLUDE_DIR}
 )
-target_link_libraries(urg_node ${Boost_LIBRARIES})
 ament_target_dependencies(urg_node
   diagnostic_updater
   laser_proc
@@ -50,6 +46,7 @@ ament_target_dependencies(urg_node
   std_srvs
   urg_c
   urg_node_msgs
+  Boost
 )
 rclcpp_components_register_node(urg_node
   PLUGIN "urg_node::UrgNode"
