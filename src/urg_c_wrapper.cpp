@@ -865,7 +865,7 @@ bool URGCWrapper::setAngleLimitsAndCluster(double& angle_min, double& angle_max,
   return true;
 }
 
-bool URGCWrapper::setSkip(int skip)
+void URGCWrapper::setSkip(int skip)
 {
   skip_ = skip;
 }
