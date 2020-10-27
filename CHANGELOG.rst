@@ -2,6 +2,13 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Function setSkip() set as void
+  This function as no return type causing undefined behavior. This function
+  has been declared as void.
+* Contributors: bostoncleek
+
 0.1.14 (2020-06-04)
 -------------------
 * Bumped CMake version.
