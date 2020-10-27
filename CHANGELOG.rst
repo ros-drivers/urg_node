@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.15 (2020-10-27)
+-------------------
 * Function setSkip() set as void
   This function as no return type causing undefined behavior. This function
   has been declared as void.
