@@ -33,6 +33,7 @@
 
 #include <urg_node/urg_c_wrapper.hpp>
 
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <string>
@@ -52,8 +53,8 @@ URGCWrapper::URGCWrapper(
   serial_baud_(0),
   use_intensity_(using_intensity),
   use_multiecho_(using_multiecho),
-  system_latency_(0),
-  user_latency_(0),
+  system_latency_(std::chrono::seconds(0)),
+  user_latency_(std::chrono::seconds(0)),
   logger_(logger)
 {
   (void) adj_alpha_;
@@ -82,8 +83,8 @@ URGCWrapper::URGCWrapper(
   serial_baud_(connection.serial_baud),
   use_intensity_(using_intensity),
   use_multiecho_(using_multiecho),
-  system_latency_(0),
-  user_latency_(0),
+  system_latency_(std::chrono::seconds(0)),
+  user_latency_(std::chrono::seconds(0)),
   logger_(logger)
 {
   (void) adj_alpha_;
@@ -772,7 +773,7 @@ void URGCWrapper::setFrameId(const std::string & frame_id)
 
 void URGCWrapper::setUserLatency(const double latency)
 {
-  user_latency_ = rclcpp::Duration(1e9 * latency);
+  user_latency_ = rclcpp::Duration(std::chrono::duration<double>(latency));
 }
 
 // Must be called before urg_start
@@ -861,15 +862,15 @@ rclcpp::Duration URGCWrapper::getAngularTimeOffset() const
   } else {
     circle_fraction = (getAngleMin() + 3.141592) / (2.0 * 3.141592);
   }
-  return rclcpp::Duration((circle_fraction * getScanPeriod()) * 1e9);
+  return rclcpp::Duration(std::chrono::duration<double>(circle_fraction * getScanPeriod()));
 }
 
 rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
 {
-  system_latency_ = rclcpp::Duration(0);
+  system_latency_ = rclcpp::Duration(std::chrono::seconds(0));
 
   rclcpp::Duration start_offset = getNativeClockOffset(1);
-  rclcpp::Duration previous_offset(0);
+  rclcpp::Duration previous_offset(std::chrono::seconds(0));
 
   std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++) {
@@ -878,7 +879,9 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
     rclcpp::Duration adjusted_scan_offset = scan_offset - start_offset;
     rclcpp::Duration adjusted_post_offset = post_offset - start_offset;
     rclcpp::Duration average_offset(
-      adjusted_post_offset.nanoseconds() / 2.0 + previous_offset.nanoseconds() / 2.0);
+      std::chrono::duration<double>(
+        adjusted_post_offset.nanoseconds() / 2.0 +
+        previous_offset.nanoseconds() / 2.0));
 
     time_offsets.push_back(adjusted_scan_offset - average_offset);
 
