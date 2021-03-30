@@ -307,11 +307,6 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
           " is of the wrong type, should be an integer.\n";
         result.successful = false;
       }
-
-    } else {
-      string_result << "The parameter " << parameter.get_name() <<
-        " is not part of the reconfigurable parameters.\n";
-      result.successful = false;
     }
   }
   result.reason = string_result.str();
