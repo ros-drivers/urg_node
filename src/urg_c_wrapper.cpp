@@ -34,6 +34,7 @@
 #include <urg_node/urg_c_wrapper.hpp>
 
 #include <chrono>
+#include <cinttypes>
 #include <limits>
 #include <memory>
 #include <string>
@@ -586,13 +587,13 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   // based on the currently known messages on the hokuyo documentations
   if (arr_size > 10000) {
     RCLCPP_ERROR(
-      logger_, "Buffer creation bounds exceeded, shouldn't allocate: %lu bytes",
+      logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes",
       arr_size);
     result.clear();
     return result;
   }
 
-  RCLCPP_DEBUG(logger_, "Creating buffer read of arr_Size: %lu bytes", arr_size);
+  RCLCPP_DEBUG(logger_, "Creating buffer read of arr_Size: %" PRIu32 " bytes", arr_size);
   // Create buffer space for read.
   auto data = std::make_unique<char[]>(arr_size);
 
