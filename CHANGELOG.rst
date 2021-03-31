@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.3 (2021-03-31)
+------------------
 * Use Python 3 specifically in helper script (`#85 <https://github.com/ros-drivers/urg_node/issues/85>`_)
   ROS 2 only targets Python 3. Making the shebang specific will ensure it
   isn't accidentally executed using the Python 2 interpreter.
