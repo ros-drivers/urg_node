@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2021-03-31)
+------------------
 * Merge pull request `#86 <https://github.com/ros-drivers/urg_node/issues/86>`_ from ros-drivers/clalancette/galactic-fixes
   Fixes for ROS 2 Galactic
 * Don't error out on unknown parameter names.
