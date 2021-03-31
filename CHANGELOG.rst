@@ -2,6 +2,16 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Use Python 3 specifically in helper script (`#85 <https://github.com/ros-drivers/urg_node/issues/85>`_)
+  ROS 2 only targets Python 3. Making the shebang specific will ensure it
+  isn't accidentally executed using the Python 2 interpreter.
+* travis-ci doesn't work
+  But ros build farm is giving us coverage
+* depend only on parts of boost needed by the package (`#75 <https://github.com/ros-drivers/urg_node/issues/75>`_)
+* Contributors: Michael Ferguson, Mikael Arguedas, Scott K Logan
+
 1.0.2 (2020-07-12)
 ------------------
 * uncrustify for f/r (`#74 <https://github.com/ros-drivers/urg_node/issues/74>`_)
