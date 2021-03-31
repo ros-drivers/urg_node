@@ -83,8 +83,6 @@ public:
 private:
   bool connect();
 
-  void reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event);
-
   rcl_interfaces::msg::SetParametersResult param_change_callback(
     const std::vector<rclcpp::Parameter> parameters);
 

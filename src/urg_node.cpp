@@ -208,90 +208,6 @@ void UrgNode::statusCallback(
   }
 }
 
-void UrgNode::reconfigure(const rcl_interfaces::msg::ParameterEvent::SharedPtr event)
-{
-  // For debug only
-  std::stringstream ss;
-  ss << "\nParameter event:\n ";
-  for (auto & new_parameter : event->new_parameters) {
-    ss << "\n  " << new_parameter.name;
-  }
-  for (auto & changed_parameter : event->changed_parameters) {
-    ss << "\n  " << changed_parameter.name;
-  }
-  for (auto & deleted_parameter : event->deleted_parameters) {
-    ss << "\n  " << deleted_parameter.name;
-  }
-  ss << "\n";
-  RCLCPP_INFO(this->get_logger(), ss.str().c_str());
-
-  // Concat the new parameters (I guess there shouldn't be any though)
-  // with the changed parameters into one vector
-  std::vector<rcl_interfaces::msg::Parameter> parameter_vec = event->new_parameters;
-  parameter_vec.insert(
-    parameter_vec.end(),
-    event->changed_parameters.begin(), event->changed_parameters.end());
-
-  // Some parameter change require to stop and start the driver to be applied
-  bool restart_required(false);
-
-  // Get each parameter one by one, the param_change_callback should leave us
-  // only with valid parameters
-  for (auto parameter : parameter_vec) {
-    if (parameter.name.compare("laser_frame_id") == 0) {
-      laser_frame_id_ = parameter.value.string_value;
-
-    } else if (parameter.name.compare("error_limit") == 0) {
-      error_limit_ = parameter.value.integer_value;
-
-    } else if (parameter.name.compare("default_user_latency") == 0) {
-      default_user_latency_ = parameter.value.integer_value + parameter.value.double_value;
-
-    } else if (parameter.name.compare("angle_min") == 0) {
-      angle_min_ = parameter.value.integer_value + parameter.value.double_value;
-      restart_required = true;
-
-    } else if (parameter.name.compare("angle_max") == 0) {
-      angle_max_ = parameter.value.integer_value + parameter.value.double_value;
-      restart_required = true;
-
-    } else if (parameter.name.compare("cluster") == 0) {
-      cluster_ = parameter.value.integer_value;
-      restart_required = true;
-
-    } else if (parameter.name.compare("skip") == 0) {
-      skip_ = parameter.value.integer_value;
-      restart_required = true;
-
-    } else {
-      RCLCPP_ERROR(
-        this->get_logger(), "The parameter %s is not part of the reconfigurable parameters.",
-        parameter.name.c_str());
-    }
-  }
-
-  // Apply the parameter changes
-  if (restart_required) {
-    std::unique_lock<std::mutex> lock(lidar_mutex_);
-    urg_->stop();
-    urg_->setAngleLimitsAndCluster(angle_min_, angle_max_, cluster_);
-
-    freq_min_ = 1.0 / (urg_->getScanPeriod() * (skip_ + 1));
-    urg_->setSkip(skip_);
-
-    try {
-      urg_->start();
-      RCLCPP_INFO(this->get_logger(), "Streaming data after reconfigure.");
-    } catch (const std::runtime_error & e) {
-      RCLCPP_FATAL(this->get_logger(), "Error while reconfiguring : %s", e.what());
-      throw e;
-    }
-  }
-
-  urg_->setFrameId(laser_frame_id_);
-  urg_->setUserLatency(default_user_latency_);
-}
-
 rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
   const std::vector<rclcpp::Parameter> parameters)
 {
@@ -391,11 +307,6 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
           " is of the wrong type, should be an integer.\n";
         result.successful = false;
       }
-
-    } else {
-      string_result << "The parameter " << parameter.get_name() <<
-        " is not part of the reconfigurable parameters.\n";
-      result.successful = false;
     }
   }
   result.reason = string_result.str();
