@@ -354,6 +354,7 @@ void UrgNode::addDiagnostics()
 // Diagnostics update task to be run in a thread.
 void UrgNode::updateDiagnostics()
 {
+  addDiagnostics();
   while (!close_diagnostics_)
   {
     diagnostic_updater_->update();
@@ -660,8 +661,6 @@ void UrgNode::run()
           *diagnostic_updater_,
           FrequencyStatusParam(&freq_min_, &freq_min_, diagnostics_tolerance_, diagnostics_window_time_)));
   }
-  // Add diagnostic analyzers to diagnostic aggregator
-  addDiagnostics();
 
   // Now that we are setup, kick off diagnostics.
   close_diagnostics_ = false;
