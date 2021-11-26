@@ -283,7 +283,7 @@ void UrgNode::calibrate_time_offset()
 void UrgNode::addDiagnostics()
 {
   std::string node_namespace = ros::this_node::getNamespace();
-  std::string node_prefix = "/";
+  std::string node_prefix = "";
   std::string node_name = ros::this_node::getName().substr(1);
   std::string node_path;
   std::string node_id = node_name;
