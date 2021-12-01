@@ -2,11 +2,6 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.1.16 (2021-11-25)
--------------------
-* Analyzers added to diagnostic aggregator to group sensor status in robot monitor. 
-* Contributors: Luis Camero
-
 0.1.15 (2020-10-27)
 -------------------
 * Function setSkip() set as void
