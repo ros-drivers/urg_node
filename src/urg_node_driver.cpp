@@ -35,6 +35,7 @@
 
 #include <tf/tf.h>  // tf header for resolving tf prefix
 #include <string>
+#include <diagnostic_msgs/AddDiagnostics.h>
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <urg_node/Status.h>
 
@@ -278,10 +279,82 @@ void UrgNode::calibrate_time_offset()
   }
 }
 
+// Add diagnostic analyzers to the diagnostic aggregator
+void UrgNode::addDiagnostics()
+{
+  std::string node_namespace = ros::this_node::getNamespace();
+  std::string node_prefix = "";
+  std::string node_name = ros::this_node::getName().substr(1);
+  std::string node_path;
+  std::string node_id = node_name;
+
+  // Create "Fake" Namespace for Diagnostics
+  if(node_namespace == "/")
+  {
+    node_namespace = ros::this_node::getName();
+    node_prefix = ros::this_node::getName() + "/";
+  }
+
+  // Sanitize Node ID
+  size_t pos = node_id.find("/");
+  while(pos != std::string::npos)
+  {
+    node_id.replace(pos, 1, "_");
+    pos = node_id.find("/");
+  }
+
+  // Sanitize Node Path
+  node_path = node_id;
+  pos = node_path.find("_");
+  while(pos != std::string::npos)
+  {
+    node_path.replace(pos, 1, " ");
+    pos = node_path.find("_");
+  }
+
+  // GroupAnalyzer Parameters
+  if(!ros::param::has(node_prefix + "analyzers/hokuyo/path"))
+  {
+    ros::param::set(node_prefix + "analyzers/hokuyo/path", "Hokuyo");
+    ros::param::set(node_prefix + "analyzers/hokuyo/type", "diagnostic_aggregator/AnalyzerGroup");
+  }
+
+  // Analyzer Parameters
+  std::string analyzerPath = node_prefix + "analyzers/hokuyo/analyzers/" + node_id;
+  if(!ros::param::has(analyzerPath + "/path"))
+  {
+    ros::param::set(analyzerPath + "/path", node_path);
+    ros::param::set(analyzerPath + "/type", "diagnostic_aggregator/GenericAnalyzer");
+    ros::param::set(analyzerPath + "/startswith", node_name);
+    ros::param::set(analyzerPath + "/remove_prefix", node_name);
+  }
+
+  // Bond to Diagnostics Aggregator
+  if(bond_ == nullptr)
+  {
+    bond_ = boost::shared_ptr<bond::Bond>(new bond::Bond("/diagnostics_agg/bond" + node_namespace, node_namespace));
+  }
+  else if(!bond_->isBroken())
+  {
+    return;
+  }
+  bond_->setConnectTimeout(120);
+
+  // Call AddDiagnostics Service
+  diagnostic_msgs::AddDiagnostics srv;
+  srv.request.load_namespace = node_namespace;
+    if(!ros::service::waitForService("/diagnostics_agg/add_diagnostics", 1000))
+  {
+    return;
+  }
+  bond_->start();
+  ros::service::call("/diagnostics_agg/add_diagnostics", srv);
+}
 
 // Diagnostics update task to be run in a thread.
 void UrgNode::updateDiagnostics()
 {
+  addDiagnostics();
   while (!close_diagnostics_)
   {
     diagnostic_updater_->update();
