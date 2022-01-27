@@ -2,6 +2,17 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* roslint fixes.
+* Diagnostic Analyzers (`#93 <https://github.com/ros-drivers/urg_node/issues/93>`_)
+  * Added diagnostic analyzers to organize robot_monitor
+  * Update Change Log
+  * Moved addDiagnostics call to the diagnostics thread
+  * Changed parameter prefix from "/" to ""
+  * Removed edits to the CHANGELOG
+* Contributors: Tony Baltovski, luis-camero
+
 0.1.15 (2020-10-27)
 -------------------
 * Function setSkip() set as void
