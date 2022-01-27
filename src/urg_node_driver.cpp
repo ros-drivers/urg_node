@@ -289,7 +289,7 @@ void UrgNode::addDiagnostics()
   std::string node_id = node_name;
 
   // Create "Fake" Namespace for Diagnostics
-  if(node_namespace == "/")
+  if (node_namespace == "/")
   {
     node_namespace = ros::this_node::getName();
     node_prefix = ros::this_node::getName() + "/";
@@ -297,7 +297,7 @@ void UrgNode::addDiagnostics()
 
   // Sanitize Node ID
   size_t pos = node_id.find("/");
-  while(pos != std::string::npos)
+  while (pos != std::string::npos)
   {
     node_id.replace(pos, 1, "_");
     pos = node_id.find("/");
@@ -306,14 +306,14 @@ void UrgNode::addDiagnostics()
   // Sanitize Node Path
   node_path = node_id;
   pos = node_path.find("_");
-  while(pos != std::string::npos)
+  while (pos != std::string::npos)
   {
     node_path.replace(pos, 1, " ");
     pos = node_path.find("_");
   }
 
   // GroupAnalyzer Parameters
-  if(!ros::param::has(node_prefix + "analyzers/hokuyo/path"))
+  if (!ros::param::has(node_prefix + "analyzers/hokuyo/path"))
   {
     ros::param::set(node_prefix + "analyzers/hokuyo/path", "Hokuyo");
     ros::param::set(node_prefix + "analyzers/hokuyo/type", "diagnostic_aggregator/AnalyzerGroup");
@@ -321,7 +321,7 @@ void UrgNode::addDiagnostics()
 
   // Analyzer Parameters
   std::string analyzerPath = node_prefix + "analyzers/hokuyo/analyzers/" + node_id;
-  if(!ros::param::has(analyzerPath + "/path"))
+  if (!ros::param::has(analyzerPath + "/path"))
   {
     ros::param::set(analyzerPath + "/path", node_path);
     ros::param::set(analyzerPath + "/type", "diagnostic_aggregator/GenericAnalyzer");
@@ -330,11 +330,11 @@ void UrgNode::addDiagnostics()
   }
 
   // Bond to Diagnostics Aggregator
-  if(bond_ == nullptr)
+  if (bond_ == nullptr)
   {
     bond_ = boost::shared_ptr<bond::Bond>(new bond::Bond("/diagnostics_agg/bond" + node_namespace, node_namespace));
   }
-  else if(!bond_->isBroken())
+  else if (!bond_->isBroken())
   {
     return;
   }
@@ -343,7 +343,7 @@ void UrgNode::addDiagnostics()
   // Call AddDiagnostics Service
   diagnostic_msgs::AddDiagnostics srv;
   srv.request.load_namespace = node_namespace;
-    if(!ros::service::waitForService("/diagnostics_agg/add_diagnostics", 1000))
+    if (!ros::service::waitForService("/diagnostics_agg/add_diagnostics", 1000))
   {
     return;
   }
