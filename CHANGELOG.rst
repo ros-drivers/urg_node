@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.16 (2022-01-27)
+-------------------
 * roslint fixes.
 * Diagnostic Analyzers (`#93 <https://github.com/ros-drivers/urg_node/issues/93>`_)
   * Added diagnostic analyzers to organize robot_monitor
