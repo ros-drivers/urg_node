@@ -11,6 +11,13 @@
         </geometry>
         <material name="dark_grey" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <!-- Origin of this mesh is the base of the bracket. -->
+          <mesh filename="package://generic_robot/meshes/hokuyo_ust10lx.stl" />
+        </geometry>
+      </collision>
       <inertial>
         <mass value="1.1" />
         <origin xyz="0 0 0" />
