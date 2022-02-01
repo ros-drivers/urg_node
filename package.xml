@@ -31,6 +31,7 @@
   <depend>urg_c</depend>
 
   <exec_depend>message_runtime</exec_depend>
+  <exec_depend>xacro</exec_depend>
 
   <test_depend>roslint</test_depend>
   <test_depend>roslaunch</test_depend>
