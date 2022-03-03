@@ -2,6 +2,17 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update UST10 (`#96 <https://github.com/ros-drivers/urg_node/issues/96>`_)
+  * Fix typo for package name
+  * Replace UST10 URDF with one used in CPR robots ; remove lx suffix from UST10 files
+  * Fix typo in package name
+  * Add installation of urdf, meshes, and launch directories to CMakeLists.txt
+* Add collision to URDF
+* Add URDF and STL of Hokuyo UST-10LX
+* Contributors: Joey Yang
+
 0.1.16 (2022-01-27)
 -------------------
 * roslint fixes.
