@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.17 (2022-03-03)
+-------------------
 * Update UST10 (`#96 <https://github.com/ros-drivers/urg_node/issues/96>`_)
   * Fix typo for package name
   * Replace UST10 URDF with one used in CPR robots ; remove lx suffix from UST10 files
