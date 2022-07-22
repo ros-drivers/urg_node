@@ -66,7 +66,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 )
 
 ## Install script to set IP addresses
-install(PROGRAMS
+catkin_install_python(PROGRAMS
    scripts/set_urg_ip.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
