@@ -72,7 +72,7 @@ if __name__ == "__main__":
     sock.connect((args.ip, 10940))
 
     print("Updating settings")
-    sock.send(msg)
+    sock.send(msg.encode('utf-8'))
     try:
         sock.settimeout(5)
         returned = sock.recv(40)
