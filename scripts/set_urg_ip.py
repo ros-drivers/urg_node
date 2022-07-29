@@ -72,14 +72,22 @@ if __name__ == "__main__":
     sock.connect((args.ip, 10940))
 
     print("Updating settings")
+    # Make sure to convert msg from str to bytes; required for Python3.
+    # Still backwards compatible with Python2.
     sock.send(msg.encode('utf-8'))
+
     try:
         sock.settimeout(5)
+        # Socket returns bytes in Python3 and str in Python2.
         returned = sock.recv(40)
     except socket.timeout:
         print("Laser did not return any packet, is probably not updated.")
         exit(-1)
-    if msg != returned:
+
+    # Make sure to compare bytes to bytes in Python3,
+    # and str to str in Python2.
+    if msg.encode('utf-8') != returned:
         print("Laser does not appear to have updated")
         exit(-1)
+
     print("Done updating, cycle power on laser")
