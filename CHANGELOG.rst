@@ -2,6 +2,12 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Encode sent msg to bytes object when comparing with returned msg bytes object from socket; ensures compatability with Python 2 and Python 3; add comments.
+* Install Python helper script using catkin_install_python() so the correct Python version is selected automatically; ensure socket sends message as byte object for Python3, while ensuring backwards compatability with Python2.
+* Contributors: Joey Yang
+
 0.1.17 (2022-03-03)
 -------------------
 * Update UST10 (`#96 <https://github.com/ros-drivers/urg_node/issues/96>`_)
