@@ -167,7 +167,7 @@ bool UrgNode::updateStatus()
 
         lockout_status_ = status.lockout_status;
         error_code_ = status.error_code;
-        // TODO Richard disabled these for now as they slow down the publish frequency
+        // TODO(richardw347): disabled these for now as they slow down the publish frequency
         // UrgDetectionReport report;
         // if (urg_->getDL00Status(report)) {
         //   msg.area_number = report.area;

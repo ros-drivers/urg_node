@@ -149,7 +149,6 @@ void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
   adj_count_ = 0;
 
   if (using_intensity) {
-    using_intensity = isIntensitySupported();
     // try to init intensity mode
     while (rclcpp::ok()) {
       RCLCPP_INFO(logger_, "Trying to init intensity mode");
