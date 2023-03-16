@@ -150,6 +150,15 @@ void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
 
   if (using_intensity) {
     using_intensity = isIntensitySupported();
+    // try to init intensity mode
+    while (rclcpp::ok()) {
+      RCLCPP_INFO(logger_, "Trying to init intensity mode");
+      if (isIntensitySupported()) {
+        RCLCPP_INFO(logger_, "Intensity mode init success");
+        using_intensity = true;
+        break;
+      }
+    }
   }
 
   if (using_multiecho) {
@@ -832,6 +841,8 @@ bool URGCWrapper::isIntensitySupported()
   urg_start_measurement(&urg_, URG_DISTANCE_INTENSITY, 0, 0);
   int ret = urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], NULL, NULL);
   if (ret <= 0) {
+    // make sure to stop measurement if returning false
+    urg_stop_measurement(&urg_);
     return false;  // Failed to start measurement with intensity: must not support it
   }
   urg_stop_measurement(&urg_);
