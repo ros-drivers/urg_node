@@ -68,7 +68,8 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   skip_(0),
   default_user_latency_(0.0),
   laser_frame_id_("laser"),
-  service_yield_(true)
+  service_yield_(true),
+  status_update_delay_(10.0)
 {
   (void) synchronize_time_;
   initSetup();
@@ -100,6 +101,7 @@ void UrgNode::initSetup()
   angle_max_ = this->declare_parameter<double>("angle_max", angle_max_);
   skip_ = this->declare_parameter<int>("skip", skip_);
   cluster_ = this->declare_parameter<int>("cluster", cluster_);
+  status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
@@ -116,7 +118,7 @@ void UrgNode::initSetup()
       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
   // TODO(karsten1987): ros2 does not have latched topics yet, need to play with QoS
-  status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 1);
+  status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 20);
 
   diagnostic_updater_.add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
 
@@ -165,15 +167,15 @@ bool UrgNode::updateStatus()
 
         lockout_status_ = status.lockout_status;
         error_code_ = status.error_code;
-
-        UrgDetectionReport report;
-        if (urg_->getDL00Status(report)) {
-          msg.area_number = report.area;
-          msg.distance = report.distance;
-          msg.angle = report.angle;
-        } else {
-          RCLCPP_WARN(this->get_logger(), "Failed to get detection report.");
-        }
+        // TODO(richardw347): disabled these for now as they slow down the publish frequency
+        // UrgDetectionReport report;
+        // if (urg_->getDL00Status(report)) {
+        //   msg.area_number = report.area;
+        //   msg.distance = report.distance;
+        //   msg.angle = report.angle;
+        // } else {
+        //   RCLCPP_WARN(this->get_logger(), "Failed to get detection report.");
+        // }
         // Publish the status on the latched topic for inspection.
         status_pub_->publish(msg);
         result = true;
@@ -526,6 +528,7 @@ void UrgNode::scanThread()
       rclcpp::sleep_for(std::chrono::seconds(1));
       continue;  // Return to top of main loop
     }
+    rclcpp::Time last_status_update = this->now();
 
     while (!close_scan_) {
       // Don't allow external access during grabbing the scan.
@@ -555,6 +558,11 @@ void UrgNode::scanThread()
       } catch (...) {
         RCLCPP_WARN(this->get_logger(), "Unknown error grabbing Hokuyo scan.");
         error_count_++;
+      }
+
+      if (this->now() - last_status_update > rclcpp::Duration::from_seconds(status_update_delay_)) {
+        this->updateStatus();
+        last_status_update = this->now();
       }
 
       if (service_yield_) {

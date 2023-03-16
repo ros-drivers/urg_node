@@ -161,6 +161,9 @@ private:
 
   volatile bool service_yield_;
 
+  /** how long between reading the sensor status */
+  double status_update_delay_;
+
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
   std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;
   rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
