@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2023-03-18)
+------------------
 * add branch information
 * add license file, same as ROS1
 * increased delay in diagnostics thread to slow down publish rate (`#102 <https://github.com/ros-drivers/urg_node/issues/102>`_)
