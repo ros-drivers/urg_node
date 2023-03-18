@@ -1,7 +1,15 @@
 urg_node
 ===================
 
-#### LaserScan Visualization
+### Branches
+
+ - ROS1:
+   - Melodic & Noetic: [melodic-devel](https://github.com/ros-drivers/urg_node/tree/melodic-devel)
+   - Kinetic: [kinetic-devel](https://github.com/ros-drivers/urg_node/tree/kinetic-devel)
+- ROS2:
+   - Galactic, Humble, Rolling: [ros2-devel](https://github.com/ros-drivers/urg_node/tree/ros2-devel)
+
+### LaserScan Visualization
 
 Until the launch API is sorted out, there are two ways to view the laserscan in RViz:
 
@@ -26,7 +34,7 @@ A urdf file is already included and if you have succesfully ran an `colcon build
 ```
 
 
-#### Parameters
+### Parameters
 
 A YAML file example is included in the launch folder, all the available parameters are listed in it.
 For example (note that the serial_port is commented because you can't set a param with an empty string):
@@ -77,7 +85,7 @@ For example to reconfigure the cluster parameter using command line :
 ros2 param set /urg_node cluster 1
 ```
 
-#### How to use the ust-20lx (and other ethernet based laser)
+### How to use the ust-20lx (and other ethernet based laser)
 
 To use ust-20lx, you need to be on the same subnet as the laser.
 The ust-20lx default ip is 192.168.0.10, so you might need to change your ip, for something on the same subnet.
