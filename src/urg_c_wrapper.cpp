@@ -335,6 +335,11 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   // Get the response
   std::string response = sendCommand(str_cmd);
 
+  if (response.empty()) {
+    RCLCPP_WARN(logger_, "Received empty response from AR00 command");
+    return false;
+  }
+
   RCLCPP_DEBUG(logger_, "Full response: %s", response.c_str());
 
   // Strip STX and ETX before calculating the CRC.
@@ -421,6 +426,11 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
 
   // Get the response
   std::string response = sendCommand(str_cmd);
+
+  if (response.empty()) {
+    RCLCPP_WARN(logger_, "Received empty response from AR00 command");
+    return false;
+  }
 
   RCLCPP_DEBUG(logger_, "Full response: %s", response.c_str());
 
