@@ -69,7 +69,8 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   default_user_latency_(0.0),
   laser_frame_id_("laser"),
   service_yield_(true),
-  status_update_delay_(10.0)
+  status_update_delay_(10.0),
+  reconn_delay_(0.5)
 {
   (void) synchronize_time_;
   initSetup();
@@ -102,6 +103,7 @@ void UrgNode::initSetup()
   skip_ = this->declare_parameter<int>("skip", skip_);
   cluster_ = this->declare_parameter<int>("cluster", cluster_);
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
+  reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
@@ -575,8 +577,7 @@ void UrgNode::scanThread()
       if (error_count_ > error_limit_) {
         RCLCPP_ERROR(this->get_logger(), "Error count exceeded limit, reconnecting.");
         urg_.reset();
-        rclcpp::sleep_for(std::chrono::seconds(2));
-
+        rclcpp::sleep_for(std::chrono::milliseconds(static_cast<uint64_t>(reconn_delay_ * 1000)));
         break;  // Return to top of main loop
       }
     }

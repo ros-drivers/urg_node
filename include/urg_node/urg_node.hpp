@@ -163,6 +163,8 @@ private:
 
   /** how long between reading the sensor status */
   double status_update_delay_;
+  /** how long to wait to reconnect **/
+  double reconn_delay_;
 
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
   std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;
