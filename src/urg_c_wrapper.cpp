@@ -573,6 +573,11 @@ std::string URGCWrapper::sendCommand(std::string cmd)
 
   // Get the socket reference and send
   int sock = urg_.connection.tcpclient.sock_desc;
+
+  struct timeval tv;
+  tv.tv_sec = 1;
+  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+
   write(sock, cmd.c_str(), cmd.size());
 
   // All serial command structures start with STX + LEN as
