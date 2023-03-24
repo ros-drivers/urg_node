@@ -336,7 +336,8 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   std::string response = sendCommand(str_cmd);
 
   if (response.empty() || response.size() < AR00_PACKET_SIZE) {
-    RCLCPP_WARN(logger_, "Invalid response from AR00 expected size: %lu actual: %lu",
+    RCLCPP_WARN(
+      logger_, "Invalid response from AR00 expected size: %lu actual: %lu",
       AR00_PACKET_SIZE, response.size());
     return false;
   }
@@ -429,7 +430,8 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
   std::string response = sendCommand(str_cmd);
 
   if (response.empty() || response.size() < DL00_PACKET_SIZE) {
-    RCLCPP_WARN(logger_, "Invalid response from DL00 expected size: %lu actual: %lu",
+    RCLCPP_WARN(
+      logger_, "Invalid response from DL00 expected size: %lu actual: %lu",
       DL00_PACKET_SIZE, response.size());
     return false;
   }
