@@ -75,7 +75,7 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   status_update_delay_(10.0),
   reconn_delay_(0.5)
 {
-  (void) synchronize_time_;
+  (void)synchronize_time_;
   initSetup();
 }
 
@@ -91,16 +91,13 @@ void UrgNode::initSetup()
   publish_intensity_ = this->declare_parameter<bool>("publish_intensity", publish_intensity_);
   publish_multiecho_ = this->declare_parameter<bool>("publish_multiecho", publish_multiecho_);
   error_limit_ = this->declare_parameter<int>("error_limit", error_limit_);
-  diagnostics_tolerance_ = this->declare_parameter<double>(
-    "diagnostics_tolerance",
-    diagnostics_tolerance_);
-  diagnostics_window_time_ = this->declare_parameter<double>(
-    "diagnostics_window_time",
-    diagnostics_window_time_);
+  diagnostics_tolerance_ =
+    this->declare_parameter<double>("diagnostics_tolerance", diagnostics_tolerance_);
+  diagnostics_window_time_ =
+    this->declare_parameter<double>("diagnostics_window_time", diagnostics_window_time_);
   detailed_status_ = this->declare_parameter<bool>("get_detailed_status", detailed_status_);
-  default_user_latency_ = this->declare_parameter<double>(
-    "default_user_latency",
-    default_user_latency_);
+  default_user_latency_ =
+    this->declare_parameter<double>("default_user_latency", default_user_latency_);
   angle_min_ = this->declare_parameter<double>("angle_min", angle_min_);
   angle_max_ = this->declare_parameter<double>("angle_max", angle_max_);
   skip_ = this->declare_parameter<int>("skip", skip_);
@@ -117,10 +114,9 @@ void UrgNode::initSetup()
   }
 
   status_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "update_laser_status",
-    std::bind(
-      &UrgNode::statusCallback, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    "update_laser_status", std::bind(
+      &UrgNode::statusCallback, this, std::placeholders::_1,
+      std::placeholders::_2, std::placeholders::_3));
 
   // TODO(karsten1987): ros2 does not have latched topics yet, need to play with QoS
   status_pub_ = this->create_publisher<urg_node_msgs::msg::Status>("laser_status", 20);
@@ -128,9 +124,7 @@ void UrgNode::initSetup()
   diagnostic_updater_.add("Hardware Status", this, &UrgNode::populateDiagnosticsStatus);
 
   parameters_callback_handle_ = this->add_on_set_parameters_callback(
-    std::bind(
-      &UrgNode::param_change_callback, this,
-      std::placeholders::_1));
+    std::bind(&UrgNode::param_change_callback, this, std::placeholders::_1));
 
   // Put this in a separate thread since it might take a while to connect
   run_thread_ = std::thread(std::bind(&UrgNode::run, this));
@@ -199,8 +193,8 @@ void UrgNode::statusCallback(
   const std_srvs::srv::Trigger::Request::SharedPtr req,
   const std_srvs::srv::Trigger::Response::SharedPtr res)
 {
-  (void) request_header;
-  (void) req;
+  (void)request_header;
+  (void)req;
 
   RCLCPP_INFO(this->get_logger(), "Got update lidar status callback");
   res->success = false;
@@ -232,8 +226,8 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
       if (parameter_type == rclcpp::ParameterType::PARAMETER_STRING) {
         result.successful &= true;
       } else {
-        string_result << "The parameter " << parameter.get_name() <<
-          " is of the wrong type, should be a string.\n";
+        string_result << "The parameter " << parameter.get_name()
+                      << " is of the wrong type, should be a string.\n";
         result.successful = false;
       }
 
@@ -247,41 +241,44 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
           result.successful = false;
         }
       } else {
-        string_result << "The parameter " << parameter.get_name() <<
-          " is of the wrong type, should be an integer.\n";
+        string_result << "The parameter " << parameter.get_name()
+                      << " is of the wrong type, should be an integer.\n";
         result.successful = false;
       }
 
     } else if (parameter.get_name().compare("default_user_latency") == 0) {
-      if (parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER ||
+      if (
+        parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER ||
         parameter_type == rclcpp::ParameterType::PARAMETER_DOUBLE)
       {
         result.successful &= true;
       } else {
-        string_result << "The parameter " << parameter.get_name() <<
-          " is of the wrong type, should be an integer or a double.\n";
+        string_result << "The parameter " << parameter.get_name()
+                      << " is of the wrong type, should be an integer or a double.\n";
         result.successful = false;
       }
 
     } else if (parameter.get_name().compare("angle_min") == 0) {
-      if (parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER ||
+      if (
+        parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER ||
         parameter_type == rclcpp::ParameterType::PARAMETER_DOUBLE)
       {
         result.successful &= true;
       } else {
-        string_result << "The parameter " << parameter.get_name() <<
-          " is of the wrong type, should be an integer or a double.\n";
+        string_result << "The parameter " << parameter.get_name()
+                      << " is of the wrong type, should be an integer or a double.\n";
         result.successful = false;
       }
 
     } else if (parameter.get_name().compare("angle_max") == 0) {
-      if (parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER ||
+      if (
+        parameter_type == rclcpp::ParameterType::PARAMETER_INTEGER ||
         parameter_type == rclcpp::ParameterType::PARAMETER_DOUBLE)
       {
         result.successful &= true;
       } else {
-        string_result << "The parameter " << parameter.get_name() <<
-          " is of the wrong type, should be an integer or a double.\n";
+        string_result << "The parameter " << parameter.get_name()
+                      << " is of the wrong type, should be an integer or a double.\n";
         result.successful = false;
       }
 
@@ -290,13 +287,13 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
         if (parameter.as_int() >= 1 && parameter.as_int() <= 99) {
           result.successful &= true;
         } else {
-          string_result << "The parameter " << parameter.get_name() <<
-            " should be between 1 and 99.\n";
+          string_result << "The parameter " << parameter.get_name()
+                        << " should be between 1 and 99.\n";
           result.successful = false;
         }
       } else {
-        string_result << "The parameter " << parameter.get_name() <<
-          " is of the wrong type, should be an integer.\n";
+        string_result << "The parameter " << parameter.get_name()
+                      << " is of the wrong type, should be an integer.\n";
         result.successful = false;
       }
 
@@ -305,13 +302,13 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
         if (parameter.as_int() >= 0 && parameter.as_int() <= 9) {
           result.successful &= true;
         } else {
-          string_result << "The parameter " << parameter.get_name() <<
-            " should be between 0 and 9.\n";
+          string_result << "The parameter " << parameter.get_name()
+                        << " should be between 0 and 9.\n";
           result.successful = false;
         }
       } else {
-        string_result << "The parameter " << parameter.get_name() <<
-          " is of the wrong type, should be an integer.\n";
+        string_result << "The parameter " << parameter.get_name()
+                      << " is of the wrong type, should be an integer.\n";
         result.successful = false;
       }
     }
@@ -357,9 +354,7 @@ void UrgNode::updateDiagnostics()
 void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
   if (!urg_) {
-    stat.summary(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Not Connected");
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Not Connected");
     return;
   }
 
@@ -372,29 +367,20 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
   }
 
   if (!is_started_) {
-    stat.summary(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Not Connected: " + device_status_);
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Not Connected: " + device_status_);
   } else if (device_status_ != std::string("Sensor works well.") &&  //NOLINT
-    device_status_ != std::string("Stable 000 no error.") &&
-    device_status_ != std::string("sensor is working normally"))
+    device_status_ != std::string("Stable 000 no error.") &&         //NOLINT
+    device_status_ != std::string("sensor is working normally"))     //NOLINT
   {
     stat.summary(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Abnormal status: " + device_status_);
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Abnormal status: " + device_status_);
   } else if (error_code_ != 0) {
     stat.summaryf(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Lidar reporting error code: %X",
-      error_code_);
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Lidar reporting error code: %X", error_code_);
   } else if (lockout_status_) {
-    stat.summary(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Lidar locked out.");
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Lidar locked out.");
   } else {
-    stat.summary(
-      diagnostic_msgs::msg::DiagnosticStatus::OK,
-      "Streaming");
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Streaming");
   }
 
   stat.add("Vendor Name", vendor_name_);
@@ -426,14 +412,12 @@ bool UrgNode::connect()
       EthernetConnection connection{ip_address_, ip_port_};
       urg_.reset(
         new urg_node::URGCWrapper(
-          connection,
-          publish_intensity_, publish_multiecho_, this->get_logger()));
+          connection, publish_intensity_, publish_multiecho_, this->get_logger()));
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
       urg_.reset(
         new urg_node::URGCWrapper(
-          connection,
-          publish_intensity_, publish_multiecho_, this->get_logger()));
+          connection, publish_intensity_, publish_multiecho_, this->get_logger()));
     }
 
     std::stringstream ss;
@@ -570,8 +554,9 @@ void UrgNode::scanThread()
       }
 
       if (this->now() - last_status_update > rclcpp::Duration::from_seconds(status_update_delay_)) {
-        if (!this->updateStatus())
+        if (!this->updateStatus()) {
           error_count_++;
+        }
         last_status_update = this->now();
       }
 
@@ -605,19 +590,15 @@ void UrgNode::run()
   if (publish_multiecho_) {
     echoes_freq_.reset(
       new diagnostic_updater::HeaderlessTopicDiagnostic(
-        "Laser Echoes",
-        diagnostic_updater_,
+        "Laser Echoes", diagnostic_updater_,
         FrequencyStatusParam(
-          &freq_min_, &freq_min_, diagnostics_tolerance_,
-          diagnostics_window_time_)));
+          &freq_min_, &freq_min_, diagnostics_tolerance_, diagnostics_window_time_)));
   } else {
     laser_freq_.reset(
       new diagnostic_updater::HeaderlessTopicDiagnostic(
-        "Laser Scan",
-        diagnostic_updater_,
+        "Laser Scan", diagnostic_updater_,
         FrequencyStatusParam(
-          &freq_min_, &freq_min_, diagnostics_tolerance_,
-          diagnostics_window_time_)));
+          &freq_min_, &freq_min_, diagnostics_tolerance_, diagnostics_window_time_)));
   }
 
   //// Now that we are setup, kick off diagnostics.

@@ -42,10 +42,8 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
-
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
-
 #include "urg_c/urg_sensor.h"
 #include "urg_c/urg_utils.h"
 
@@ -109,13 +107,11 @@ class URGCWrapper
 {
 public:
   URGCWrapper(
-    const EthernetConnection & connection,
-    bool & using_intensity, bool & using_multiecho,
+    const EthernetConnection & connection, bool & using_intensity, bool & using_multiecho,
     const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
   URGCWrapper(
-    const SerialConnection & connection,
-    bool & using_intensity, bool & using_multiecho,
+    const SerialConnection & connection, bool & using_intensity, bool & using_multiecho,
     const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
 
   ~URGCWrapper();
@@ -238,7 +234,7 @@ private:
   // TODO(karsten1987): Verify the real data type of this
   // cppcheck complains that `long` isn't type safe.
   // ignoring this check for now given that this requires changes in urg_c as well.
-  std::vector<long> data_;  // NOLINT
+  std::vector<long> data_;                 // NOLINT
   std::vector<unsigned short> intensity_;  // NOLINT
 
   bool use_intensity_;
