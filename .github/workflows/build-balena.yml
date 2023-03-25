@@ -1,0 +1,13 @@
+name: Build ARRI production image
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: botsandus/github-actions/.github/workflows/container-build-feature-repo.yml@master
+    secrets: inherit
