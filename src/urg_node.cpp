@@ -330,7 +330,7 @@ void UrgNode::calibrate_time_offset()
     RCLCPP_WARN(this->get_logger(), "Time calibration is still experimental.");
     rclcpp::Duration latency = urg_->computeLatency(10);
     system_latency_ = urg_->getComputedLatency();
-    user_latency_ = urg_->getUserTimeOffset();
+    user_latency_ = urg_->getUserLatency();
     RCLCPP_INFO(
       this->get_logger(), "Calibration finished. Latency is: %.4f sec.",
       (double)(latency.nanoseconds() * 1e-9));
