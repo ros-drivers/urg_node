@@ -762,7 +762,7 @@ rclcpp::Duration URGCWrapper::getComputedLatency() const
   return system_latency_;
 }
 
-rclcpp::Duration URGCWrapper::getUserTimeOffset() const
+rclcpp::Duration URGCWrapper::getUserLatency() const
 {
   return user_latency_;
 }
