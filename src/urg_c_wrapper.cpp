@@ -30,6 +30,7 @@
 /*
  * Author: Chad Rockey, Mike O'Driscoll
  */
+
 #include <urg_node/urg_c_wrapper.hpp>
 
 #include <chrono>
@@ -45,8 +46,8 @@ namespace urg_node
 {
 
 URGCWrapper::URGCWrapper(
-  const EthernetConnection & connection, bool & using_intensity, bool & using_multiecho,
-  const rclcpp::Logger & logger)
+  const EthernetConnection & connection, bool & using_intensity,
+  bool & using_multiecho, const rclcpp::Logger & logger)
 : ip_address_(connection.ip_address),
   ip_port_(connection.ip_port),
   serial_port_(""),
@@ -57,7 +58,7 @@ URGCWrapper::URGCWrapper(
   user_latency_(std::chrono::seconds(0)),
   logger_(logger)
 {
-  (void)adj_alpha_;
+  (void) adj_alpha_;
 
   long baudrate_or_port = (long)ip_port_;  // NOLINT
   const char * device = ip_address_.c_str();
@@ -75,8 +76,8 @@ URGCWrapper::URGCWrapper(
 }
 
 URGCWrapper::URGCWrapper(
-  const SerialConnection & connection, bool & using_intensity, bool & using_multiecho,
-  const rclcpp::Logger & logger)
+  const SerialConnection & connection,
+  bool & using_intensity, bool & using_multiecho, const rclcpp::Logger & logger)
 : ip_address_(""),
   ip_port_(0),
   serial_port_(connection.serial_port),
@@ -87,7 +88,7 @@ URGCWrapper::URGCWrapper(
   user_latency_(std::chrono::seconds(0)),
   logger_(logger)
 {
-  (void)adj_alpha_;
+  (void) adj_alpha_;
 
   long baudrate_or_port = (long)serial_baud_;  // NOLINT
   const char * device = serial_port_.c_str();
@@ -184,12 +185,10 @@ void URGCWrapper::start()
       std::stringstream ss;
       ss << "Could not start Hokuyo measurement:\n";
       if (use_intensity_) {
-        ss << "With Intensity"
-           << "\n";
+        ss << "With Intensity" << "\n";
       }
       if (use_multiecho_) {
-        ss << "With MultiEcho"
-           << "\n";
+        ss << "With MultiEcho" << "\n";
       }
       ss << urg_error(&urg_);
       throw std::runtime_error(ss.str());
@@ -223,12 +222,13 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
 
   // Grab scan
   int num_beams = 0;
-  long time_stamp = 0;                       // NOLINT
+  long time_stamp = 0;  // NOLINT
   unsigned long long system_time_stamp = 0;  // NOLINT
 
   if (use_intensity_) {
-    num_beams =
-      urg_get_distance_intensity(&urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
+    num_beams = urg_get_distance_intensity(
+      &urg_, &data_[0], &intensity_[0], &time_stamp,
+      &system_time_stamp);
   } else {
     num_beams = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
@@ -238,8 +238,7 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
 
   // Fill scan
   builtin_interfaces::msg::Time stampTime = rclcpp::Time(static_cast<int64_t>(system_time_stamp)) +
-    system_latency_ + user_latency_ +
-    getAngularTimeOffset();
+    system_latency_ + user_latency_ + getAngularTimeOffset();
   msg.header.stamp = stampTime;
   msg.ranges.resize(num_beams);
 
@@ -274,12 +273,13 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
 
   // Grab scan
   int num_beams = 0;
-  long time_stamp = 0;                   // NOLINT
+  long time_stamp = 0;  // NOLINT
   unsigned long long system_time_stamp;  // NOLINT
 
   if (use_intensity_) {
     num_beams = urg_get_multiecho_intensity(
-      &urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
+      &urg_, &data_[0], &intensity_[0], &time_stamp,
+      &system_time_stamp);
   } else {
     num_beams = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
@@ -289,8 +289,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
 
   // Fill scan
   // (uses vector.reserve wherever possible to avoid initalization and unecessary memory expansion)
-  builtin_interfaces::msg::Time stampTime =
-    rclcpp::Time(system_time_stamp) + system_latency_ + user_latency_ + getAngularTimeOffset();
+  builtin_interfaces::msg::Time stampTime = rclcpp::Time(system_time_stamp) + system_latency_ +
+    user_latency_ + getAngularTimeOffset();
   msg.header.stamp = stampTime;
 
   msg.ranges.reserve(num_beams);
@@ -328,17 +328,17 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
 {
   // Construct and write AR00 command.
   std::string str_cmd;
-  str_cmd += 0x02;                 // STX
+  str_cmd += 0x02;  // STX
   str_cmd.append("000EAR00A012");  // AR00 cmd with length and checksum.
-  str_cmd += 0x03;                 // ETX
+  str_cmd += 0x03;  // ETX
 
   // Get the response
   std::string response = sendCommand(str_cmd);
 
   if (response.empty() || response.size() < AR00_PACKET_SIZE) {
     RCLCPP_WARN(
-      logger_, "Invalid response from AR00 expected size: %lu actual: %lu", AR00_PACKET_SIZE,
-      response.size());
+      logger_, "Invalid response from AR00 expected size: %lu actual: %lu",
+      AR00_PACKET_SIZE, response.size());
     return false;
   }
 
@@ -398,6 +398,7 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   RCLCPP_DEBUG(logger_, "Error status: %s", response.substr(13, 1).c_str());
   ss >> std::hex >> status.error_status;
 
+
   // Grab the error code
   ss.clear();
   ss << response.substr(14, 2);
@@ -421,17 +422,17 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
 {
   // Construct and write DL00 command.
   std::string str_cmd;
-  str_cmd += 0x02;                 // STX
+  str_cmd += 0x02;  // STX
   str_cmd.append("000EDL005BCB");  // DL00 cmd with length and checksum.
-  str_cmd += 0x03;                 // ETX
+  str_cmd += 0x03;  // ETX
 
   // Get the response
   std::string response = sendCommand(str_cmd);
 
   if (response.empty() || response.size() < DL00_PACKET_SIZE) {
     RCLCPP_WARN(
-      logger_, "Invalid response from DL00 expected size: %lu actual: %lu", DL00_PACKET_SIZE,
-      response.size());
+      logger_, "Invalid response from DL00 expected size: %lu actual: %lu",
+      DL00_PACKET_SIZE, response.size());
     return false;
   }
 
@@ -486,6 +487,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
     uint16_t offset_pos = i * 64;
     ss << msg.substr(offset_pos, 2);  // Area is 2 chars long
     ss >> std::hex >> area;
+
 
     ss.clear();
     ss << msg.substr(offset_pos + 4, 4);  // Distance is offset 4 from beginning, 4 chars long.
@@ -546,8 +548,7 @@ bool URGCWrapper::setToSCIP2()
   n = serial_readline(&(urg_.connection.serial), buffer, sizeof(buffer), 1000);
 
   // Check if switching was successful.
-  if (
-    n > 0 && strcmp(buffer, "SCIP2.0") == 0 &&
+  if (n > 0 && strcmp(buffer, "SCIP2.0") == 0 &&
     urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)  // NOLINT
   {
     RCLCPP_DEBUG(logger_, "Set sensor to SCIP 2.0.");
@@ -613,7 +614,8 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   // based on the currently known messages on the hokuyo documentations
   if (arr_size > 10000) {
     RCLCPP_ERROR(
-      logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes", arr_size);
+      logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes",
+      arr_size);
     result.clear();
     return result;
   }
@@ -651,7 +653,10 @@ std::string URGCWrapper::sendCommand(std::string cmd)
   return result;
 }
 
-bool URGCWrapper::isStarted() const {return started_;}
+bool URGCWrapper::isStarted() const
+{
+  return started_;
+}
 
 double URGCWrapper::getRangeMin() const
 {
@@ -669,9 +674,15 @@ double URGCWrapper::getRangeMax() const
   return static_cast<double>(maxr) / 1000.0;
 }
 
-double URGCWrapper::getAngleMin() const {return urg_step2rad(&urg_, first_step_);}
+double URGCWrapper::getAngleMin() const
+{
+  return urg_step2rad(&urg_, first_step_);
+}
 
-double URGCWrapper::getAngleMax() const {return urg_step2rad(&urg_, last_step_);}
+double URGCWrapper::getAngleMax() const
+{
+  return urg_step2rad(&urg_, last_step_);
+}
 
 double URGCWrapper::getAngleMinLimit() const
 {
@@ -712,41 +723,81 @@ double URGCWrapper::getTimeIncrement() const
   return cluster_ * circle_fraction * scan_period / static_cast<double>(max_step - min_step);
 }
 
-std::string URGCWrapper::getIPAddress() const {return ip_address_;}
 
-int URGCWrapper::getIPPort() const {return ip_port_;}
+std::string URGCWrapper::getIPAddress() const
+{
+  return ip_address_;
+}
 
-std::string URGCWrapper::getSerialPort() const {return serial_port_;}
+int URGCWrapper::getIPPort() const
+{
+  return ip_port_;
+}
 
-int URGCWrapper::getSerialBaud() const {return serial_baud_;}
+std::string URGCWrapper::getSerialPort() const
+{
+  return serial_port_;
+}
 
-std::string URGCWrapper::getVendorName() {return std::string(urg_sensor_vendor(&urg_));}
+int URGCWrapper::getSerialBaud() const
+{
+  return serial_baud_;
+}
 
-std::string URGCWrapper::getProductName() {return std::string(urg_sensor_product_type(&urg_));}
+std::string URGCWrapper::getVendorName()
+{
+  return std::string(urg_sensor_vendor(&urg_));
+}
+
+std::string URGCWrapper::getProductName()
+{
+  return std::string(urg_sensor_product_type(&urg_));
+}
 
 std::string URGCWrapper::getFirmwareVersion()
 {
   return std::string(urg_sensor_firmware_version(&urg_));
 }
 
-std::string URGCWrapper::getFirmwareDate() {return std::string(urg_sensor_firmware_date(&urg_));}
+std::string URGCWrapper::getFirmwareDate()
+{
+  return std::string(urg_sensor_firmware_date(&urg_));
+}
 
 std::string URGCWrapper::getProtocolVersion()
 {
   return std::string(urg_sensor_protocol_version(&urg_));
 }
 
-std::string URGCWrapper::getDeviceID() {return std::string(urg_sensor_serial_id(&urg_));}
+std::string URGCWrapper::getDeviceID()
+{
+  return std::string(urg_sensor_serial_id(&urg_));
+}
 
-rclcpp::Duration URGCWrapper::getComputedLatency() const {return system_latency_;}
+rclcpp::Duration URGCWrapper::getComputedLatency() const
+{
+  return system_latency_;
+}
 
-rclcpp::Duration URGCWrapper::getUserTimeOffset() const {return user_latency_;}
+rclcpp::Duration URGCWrapper::getUserTimeOffset() const
+{
+  return user_latency_;
+}
 
-std::string URGCWrapper::getSensorStatus() {return std::string(urg_sensor_status(&urg_));}
+std::string URGCWrapper::getSensorStatus()
+{
+  return std::string(urg_sensor_status(&urg_));
+}
 
-std::string URGCWrapper::getSensorState() {return std::string(urg_sensor_state(&urg_));}
+std::string URGCWrapper::getSensorState()
+{
+  return std::string(urg_sensor_state(&urg_));
+}
 
-void URGCWrapper::setFrameId(const std::string & frame_id) {frame_id_ = frame_id;}
+void URGCWrapper::setFrameId(const std::string & frame_id)
+{
+  frame_id_ = frame_id;
+}
 
 void URGCWrapper::setUserLatency(const double latency)
 {
@@ -794,7 +845,10 @@ bool URGCWrapper::setAngleLimitsAndCluster(double & angle_min, double & angle_ma
   return true;
 }
 
-void URGCWrapper::setSkip(int skip) {skip_ = skip;}
+void URGCWrapper::setSkip(int skip)
+{
+  skip_ = skip;
+}
 
 bool URGCWrapper::isIntensitySupported()
 {
@@ -854,8 +908,10 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
     rclcpp::Duration post_offset = getNativeClockOffset(1);
     rclcpp::Duration adjusted_scan_offset = scan_offset - start_offset;
     rclcpp::Duration adjusted_post_offset = post_offset - start_offset;
-    rclcpp::Duration average_offset(std::chrono::duration<double>(
-        adjusted_post_offset.nanoseconds() / 2.0 + previous_offset.nanoseconds() / 2.0));
+    rclcpp::Duration average_offset(
+      std::chrono::duration<double>(
+        adjusted_post_offset.nanoseconds() / 2.0 +
+        previous_offset.nanoseconds() / 2.0));
 
     time_offsets.push_back(adjusted_scan_offset - average_offset);
 
@@ -865,7 +921,8 @@ rclcpp::Duration URGCWrapper::computeLatency(size_t num_measurements)
   // Get median value
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(
-    time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
+    time_offsets.begin(),
+    time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   system_latency_ = time_offsets[time_offsets.size() / 2];
   // Angular time offset makes the output comparable to that of hokuyo_node
   return system_latency_ + getAngularTimeOffset();
@@ -888,13 +945,11 @@ rclcpp::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
   std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++) {
     rclcpp::Time request_time(std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::system_clock::now().time_since_epoch())
-      .count());
+        std::chrono::system_clock::now().time_since_epoch()).count());
     double urg_ts = urg_time_stamp(&urg_);
     rclcpp::Time laser_time(1e6 * urg_ts);
     rclcpp::Time response_time(std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::system_clock::now().time_since_epoch())
-      .count());
+        std::chrono::system_clock::now().time_since_epoch()).count());
     rclcpp::Time average_time(response_time.nanoseconds() / 2.0 + request_time.nanoseconds() / 2.0);
     time_offsets.push_back(laser_time - average_time);
   }
@@ -908,7 +963,8 @@ rclcpp::Duration URGCWrapper::getNativeClockOffset(size_t num_measurements)
   // Return median value
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(
-    time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
+    time_offsets.begin(),
+    time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
 }
 
@@ -924,7 +980,7 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
 
   std::vector<rclcpp::Duration> time_offsets;
   for (size_t i = 0; i < num_measurements; i++) {
-    long time_stamp;                       // NOLINT
+    long time_stamp;  // NOLINT
     unsigned long long system_time_stamp;  // NOLINT
     int ret = 0;
 
@@ -932,12 +988,14 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
       ret = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
     } else if (measurement_type_ == URG_DISTANCE_INTENSITY) {
       ret = urg_get_distance_intensity(
-        &urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
+        &urg_, &data_[0], &intensity_[0], &time_stamp,
+        &system_time_stamp);
     } else if (measurement_type_ == URG_MULTIECHO) {
       ret = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
     } else if (measurement_type_ == URG_MULTIECHO_INTENSITY) {
       ret = urg_get_multiecho_intensity(
-        &urg_, &data_[0], &intensity_[0], &time_stamp, &system_time_stamp);
+        &urg_, &data_[0], &intensity_[0], &time_stamp,
+        &system_time_stamp);
     }
 
     if (ret <= 0) {
@@ -957,7 +1015,8 @@ rclcpp::Duration URGCWrapper::getTimeStampOffset(size_t num_measurements)
   // Return median value
   // Sort vector using nth_element (partially sorts up to the median index)
   std::nth_element(
-    time_offsets.begin(), time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
+    time_offsets.begin(),
+    time_offsets.begin() + time_offsets.size() / 2, time_offsets.end());
   return time_offsets[time_offsets.size() / 2];
 }
 }  // namespace urg_node

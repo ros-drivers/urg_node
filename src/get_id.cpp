@@ -41,21 +41,23 @@
 #include <string>
 #include <vector>
 
-#include "rclcpp/rclcpp.hpp"
 #include "urg_node/urg_c_wrapper.hpp"
 
+#include "rclcpp/rclcpp.hpp"
+
 #ifdef _WIN32
-#include <io.h>
-#define pipe(X) _pipe(X, 4096, O_BINARY)
-#define fileno _fileno
-#define dup2 _dup2
-#define read _read
-#elif __linux__ || __unix || __unix__ || __APPLE__
-#include <unistd.h>
+  #include <io.h>
+  #define pipe(X) _pipe(X, 4096, O_BINARY)
+  #define fileno _fileno
+  #define dup2 _dup2
+  #define read _read
+#elif  __linux__ || __unix || __unix__ || __APPLE__
+  #include <unistd.h>
 #endif
 
 std::vector<std::string> & split(
-  const std::string & s, char delim, std::vector<std::string> & elems)
+  const std::string & s, char delim,
+  std::vector<std::string> & elems)
 {
   std::stringstream ss(s);
   std::string item;
@@ -128,10 +130,16 @@ int main(int argc, char ** argv)
     try {
       if (ip_address != "") {
         urg_node::EthernetConnection connection{ip_address, ip_port};
-        urg_.reset(new urg_node::URGCWrapper(connection, publish_intensity, publish_multiecho));
+        urg_.reset(
+          new urg_node::URGCWrapper(
+            connection,
+            publish_intensity, publish_multiecho));
       } else {
         urg_node::SerialConnection connection{serial_port, serial_baud};
-        urg_.reset(new urg_node::URGCWrapper(connection, publish_intensity, publish_multiecho));
+        urg_.reset(
+          new urg_node::URGCWrapper(
+            connection,
+            publish_intensity, publish_multiecho));
       }
       std::string device_id = urg_->getDeviceID();
       if (verbose) {
@@ -142,7 +150,7 @@ int main(int argc, char ** argv)
         }
       }
       // Print this in either mode
-      fflush(NULL);                      // Clear whatever we aren't printing
+      fflush(NULL);  // Clear whatever we aren't printing
       dup2(save_stdout, STDOUT_FILENO);  // Restore std::out
       printf("%s\n", device_id.c_str());
       return 0;
