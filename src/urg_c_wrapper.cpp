@@ -414,6 +414,12 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   RCLCPP_DEBUG(logger_, "Lockout: %s", response.substr(16, 1).c_str());
   ss >> std::hex >> status.lockout_status;
 
+  // Get the contamination status
+  ss.clear();
+  ss << response.substr(42, 1);
+  RCLCPP_DEBUG(logger_, "Contamination: %s", response.substr(42, 1).c_str());
+  ss >> std::hex >> status.contamination_warning;
+
   return true;
 }
 
