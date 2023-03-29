@@ -416,8 +416,8 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
 
   // Get the contamination status
   ss.clear();
-  ss << response.substr(42, 1);
-  RCLCPP_DEBUG(logger_, "Contamination: %s", response.substr(42, 1).c_str());
+  ss << response.substr(60, 1);
+  RCLCPP_DEBUG(logger_, "Contamination: %s", response.substr(60, 1).c_str());
   ss >> std::hex >> status.contamination_warning;
 
   return true;
