@@ -326,7 +326,7 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
 
 bool URGCWrapper::getXR00Status(URGStatus & status)
 {
-  // Construct and write AR00 command.
+  // Construct and write XR00 command.
   std::string str_cmd;
   str_cmd += 0x02;                 // STX
   str_cmd.append("000EXR009AD0");  // XR00 cmd with length and checksum.
