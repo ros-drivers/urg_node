@@ -329,7 +329,7 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
   // Construct and write AR00 command.
   std::string str_cmd;
   str_cmd += 0x02;                 // STX
-  str_cmd.append("000EXR009AD0");  // AR01 cmd with length and checksum.
+  str_cmd.append("000EXR009AD0");  // XR00 cmd with length and checksum.
   str_cmd += 0x03;                 // ETX
 
   // Get the response
