@@ -337,7 +337,7 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
 
   if (response.empty() || response.size() < XR00_PACKET_SIZE) {
     RCLCPP_WARN(
-      logger_, "Invalid response from XR00 expected size: %lu actual: %lu", AR00_PACKET_SIZE,
+      logger_, "Invalid response from XR00 expected size: %lu actual: %lu", XR00_PACKET_SIZE,
       response.size());
     return false;
   }
