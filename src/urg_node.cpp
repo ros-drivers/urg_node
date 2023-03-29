@@ -154,10 +154,9 @@ bool UrgNode::updateStatus()
 
   if (urg_) {
     device_status_ = urg_->getSensorStatus();
-
     if (detailed_status_) {
       URGStatus status;
-      if (urg_->getAR00Status(status)) {
+      if (urg_->getXR00Status(status)) {
         urg_node_msgs::msg::Status msg;
         msg.operating_mode = status.operating_mode;
         msg.error_status = status.error_status;
@@ -184,6 +183,8 @@ bool UrgNode::updateStatus()
         urg_node_msgs::msg::Status msg;
         status_pub_->publish(msg);
       }
+    } else {
+      result = true;
     }
   }
   return result;

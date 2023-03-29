@@ -103,6 +103,7 @@ struct SerialConnection
 };
 
 static const size_t AR00_PACKET_SIZE = 4379;
+static const size_t XR00_PACKET_SIZE = 106;
 static const size_t DL00_PACKET_SIZE = 1936;
 
 class URGCWrapper
@@ -184,7 +185,7 @@ public:
 
   bool grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg);
 
-  bool getAR00Status(URGStatus & status);
+  bool getXR00Status(URGStatus & status);
 
   bool getDL00Status(UrgDetectionReport & report);
 
@@ -221,7 +222,7 @@ private:
    * @param cmd The arbitrary command fully formatted to be sent as provided
    * @returns The textual response of the Lidar, empty if, but may return lidar's own error string.
    */
-  std::string sendCommand(std::string cmd);
+  std::string sendCommand(const std::string & cmd, bool stop_scan);
 
   std::string ip_address_;
   int ip_port_;
