@@ -35,23 +35,28 @@
 #ifndef URG_NODE__URG_NODE_HPP_
 #define URG_NODE__URG_NODE_HPP_
 
-#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
+#include <atomic>
 
-#include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/publisher.hpp"
+#include "diagnostic_msgs/msg/diagnostic_status.hpp"
+
 #include "laser_proc/laser_publisher.hpp"
+
 #include "rcl_interfaces/msg/parameter.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
+
 #include "rclcpp/rclcpp.hpp"
+
 #include "std_srvs/srv/trigger.hpp"
-#include "urg_node/urg_c_wrapper.hpp"
+
 #include "urg_node_msgs/msg/status.hpp"
+#include "urg_node/urg_c_wrapper.hpp"
 
 namespace urg_node
 {
