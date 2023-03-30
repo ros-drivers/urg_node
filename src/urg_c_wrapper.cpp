@@ -324,21 +324,21 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
   return true;
 }
 
-bool URGCWrapper::getAR00Status(URGStatus & status)
+bool URGCWrapper::getXR00Status(URGStatus & status)
 {
-  // Construct and write AR00 command.
+  // Construct and write XR00 command.
   std::string str_cmd;
-  str_cmd += 0x02;  // STX
-  str_cmd.append("000EAR00A012");  // AR00 cmd with length and checksum.
-  str_cmd += 0x03;  // ETX
+  str_cmd += 0x02;                 // STX
+  str_cmd.append("000EXR009AD0");  // XR00 cmd with length and checksum.
+  str_cmd += 0x03;                 // ETX
 
   // Get the response
-  std::string response = sendCommand(str_cmd);
+  std::string response = sendCommand(str_cmd, false);
 
-  if (response.empty() || response.size() < AR00_PACKET_SIZE) {
+  if (response.empty() || response.size() < XR00_PACKET_SIZE) {
     RCLCPP_WARN(
-      logger_, "Invalid response from AR00 expected size: %lu actual: %lu",
-      AR00_PACKET_SIZE, response.size());
+      logger_, "Invalid response from XR00 expected size: %lu actual: %lu", XR00_PACKET_SIZE,
+      response.size());
     return false;
   }
 
@@ -415,6 +415,12 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   RCLCPP_DEBUG(logger_, "Lockout: %s", response.substr(16, 1).c_str());
   ss >> std::hex >> status.lockout_status;
 
+  // Get the contamination status
+  ss.clear();
+  ss << response.substr(60, 1);
+  RCLCPP_DEBUG(logger_, "Contamination: %s", response.substr(60, 1).c_str());
+  ss >> std::hex >> status.contamination_warning;
+
   return true;
 }
 
@@ -427,7 +433,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
   str_cmd += 0x03;  // ETX
 
   // Get the response
-  std::string response = sendCommand(str_cmd);
+  std::string response = sendCommand(str_cmd, true);
 
   if (response.empty() || response.size() < DL00_PACKET_SIZE) {
     RCLCPP_WARN(
@@ -564,12 +570,12 @@ uint16_t URGCWrapper::checkCRC(const char * bytes, const uint32_t size)
   return crc_kermit_type.checksum();
 }
 
-std::string URGCWrapper::sendCommand(std::string cmd)
+std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
 {
   std::string result;
   bool restart = false;
 
-  if (isStarted()) {
+  if (isStarted() && stop_scan) {
     restart = true;
     // Scan must stop before sending a command
     stop();
