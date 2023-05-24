@@ -398,6 +398,42 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   RCLCPP_DEBUG(logger_, "Lockout: %s", response.substr(16, 1).c_str());
   ss >> std::hex >> status.lockout_status;
 
+  // Get the OSSD1 status
+  ss.clear();
+  ss << response.substr(17, 1);
+  RCLCPP_DEBUG(logger_, "OSSD1: %s", response.substr(17, 1).c_str());
+  ss >> std::hex >> status.ossd_1;
+
+  // Get the OSSD2 status
+  ss.clear();
+  ss << response.substr(18, 1);
+  RCLCPP_DEBUG(logger_, "OSSD2: %s", response.substr(18, 1).c_str());
+  ss >> std::hex >> status.ossd_2;
+
+  // Get the Warning 1 status
+  ss.clear();
+  ss << response.substr(19, 1);
+  RCLCPP_DEBUG(logger_, "Warn1: %s", response.substr(19, 1).c_str());
+  ss >> std::hex >> status.warn_1;
+
+  // Get the Warning 2 status
+  ss.clear();
+  ss << response.substr(20, 1);
+  RCLCPP_DEBUG(logger_, "Warn2: %s", response.substr(20, 1).c_str());
+  ss >> std::hex >> status.warn_2;
+
+  // Get the OSSD3 status
+  ss.clear();
+  ss << response.substr(21, 1);
+  RCLCPP_DEBUG(logger_, "OSSD3: %s", response.substr(21, 1).c_str());
+  ss >> std::hex >> status.ossd_3;
+
+  // Get the OSSD4 status
+  ss.clear();
+  ss << response.substr(21, 1);
+  RCLCPP_DEBUG(logger_, "OSSD4: %s", response.substr(21, 1).c_str());
+  ss >> std::hex >> status.ossd_4;
+
   return true;
 }
 
