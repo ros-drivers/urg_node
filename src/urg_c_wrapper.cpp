@@ -233,6 +233,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
     num_beams = urg_get_distance(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
   if (num_beams <= 0) {
+    std::string error(urg_error(&urg_));
+    RCLCPP_ERROR(logger_, "Error getting scan: %s", error.c_str());
     return false;
   }
 
