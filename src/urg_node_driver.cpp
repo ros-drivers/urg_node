@@ -90,7 +90,7 @@ void UrgNode::initSetup()
   }
   else
   {
-    laser_pub_ = nh_.advertise<sensor_msgs::LaserScan>("scan", 20);
+    laser_pub_ = nh_.advertise<sensor_msgs::LaserScan>("scan_", 20);
   }
 
   status_service_ = nh_.advertiseService("update_laser_status", &UrgNode::statusCallback, this);
@@ -225,7 +225,7 @@ bool UrgNode::reconfigure_callback(urg_node::URGConfig& config, int level)
 
   // The publish frequency changes based on the number of skipped scans.
   // Update accordingly here.
-  freq_min_ = 1.0 / (urg_->getScanPeriod() * (config.skip + 1));
+  freq_min_ = 2.0 / (urg_->getScanPeriod() * (config.skip + 1));
 
   std::string frame_id = tf::resolve(config.tf_prefix, config.frame_id);
   urg_->setFrameId(frame_id);

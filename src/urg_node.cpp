@@ -37,7 +37,6 @@ int main(int argc, char **argv)
 {
   // Initialize node and nodehandles
   ros::init(argc, argv, "urg_node");
-
   urg_node::UrgNode node;
   node.run();
 
