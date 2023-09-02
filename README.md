@@ -114,9 +114,9 @@ On Ubuntu :
 - To check if it worked, open a terminal and type
 
 ```
-ip --human-readable --color address
+ip --color address
 ```
-or simply `ip a`
+or simply `ip -c a`
 
 - Under eth0 (or maybe something like enpxxxxx), your IP should be 192.168.0.15.
 You should now be able to ping the ust-20lx at its address (by default 192.168.0.10)
