@@ -64,7 +64,7 @@ urg_node:
 To give parameters to urg_node :
 
 ```
-ros2 run urg_node urg_node_driver __params:=path/to/my/file.yaml
+ros2 run urg_node urg_node_driver --ros-args --params-file path/to/my/file.yaml
 ```
 
 You can reconfigure parameters while the node is launched.
@@ -120,7 +120,7 @@ If you don't receive any answer, you might have a connection problem or the IP o
 - Once you can ping the laser, you can launch the urg_node_driver:
 
 ```
-ros2 run urg_node urg_node_driver __params:=path/to/my/file.yaml
+ros2 run urg_node urg_node_driver --ros-args --params-file path/to/my/file.yaml
 ```
 
 then the static publisher:
