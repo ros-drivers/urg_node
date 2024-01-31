@@ -102,6 +102,9 @@ struct SerialConnection
   int serial_baud;
 };
 
+static const size_t AR00_PACKET_SIZE = 4379;
+static const size_t DL00_PACKET_SIZE = 1936;
+
 class URGCWrapper
 {
 public:

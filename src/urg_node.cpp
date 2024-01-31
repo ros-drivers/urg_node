@@ -158,6 +158,13 @@ bool UrgNode::updateStatus()
     device_status_ = urg_->getSensorStatus();
 
     if (detailed_status_) {
+      // check product supports this command
+      if (product_name_.find("UAM") != 0) {
+        RCLCPP_WARN(
+          this->get_logger(), "Detailed status only available for UAM series, your model is %s",
+          product_name_.c_str());
+        return false;
+      }
       URGStatus status;
       if (urg_->getAR00Status(status)) {
         urg_node_msgs::msg::Status msg;
