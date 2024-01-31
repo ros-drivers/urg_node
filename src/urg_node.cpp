@@ -165,6 +165,12 @@ bool UrgNode::updateStatus()
         msg.error_status = status.error_status;
         msg.error_code = status.error_code;
         msg.lockout_status = status.lockout_status;
+        msg.ossd_1 = status.ossd_1;
+        msg.ossd_2 = status.ossd_2;
+        msg.warning_1 = status.warn_1;
+        msg.warning_2 = status.warn_2;
+        msg.ossd_3 = status.ossd_3;
+        msg.ossd_4 = status.ossd_4;
 
         lockout_status_ = status.lockout_status;
         error_code_ = status.error_code;
