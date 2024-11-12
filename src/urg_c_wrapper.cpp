@@ -425,10 +425,12 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   RCLCPP_DEBUG(logger_, "Laser Off: %s", response.substr(41, 1).c_str());
 
   // Get optical window contamination warning
-  ss.clear();
-  ss << response.substr(42, 1);
-  RCLCPP_DEBUG(logger_, "Opt. Window Contamination: %s", response.substr(42, 1).c_str());
-  ss >> std::hex >> status.optical_window_contaminated;
+  {
+    std::stringstream ss2;
+    ss2 << response.substr(42, 1);
+    RCLCPP_DEBUG(logger_, "Opt. Window Contamination: \"%s\"", response.substr(42, 1).c_str());
+    ss2 >> std::hex >> status.optical_window_contaminated;
+  }
 
   ss.clear();
   ss << response.substr(43, 1);
