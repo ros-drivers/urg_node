@@ -315,7 +315,6 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
 
   return true;
 }
-
 bool URGCWrapper::getAR00Status(URGStatus & status)
 {
   // Construct and write AR00 command.
@@ -333,11 +332,11 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   response.erase(0, 1);
   response.erase(response.size() - 1, 1);
 
+  std::string s;
+
   // Get the CRC, it's the last 4 chars.
-  std::stringstream ss;
-  ss << response.substr(response.size() - 4, 4);
-  uint16_t crc;
-  ss >> std::hex >> crc;
+  s = response.substr(response.size() - 4, 4);
+  const uint16_t crc = std::stoul(s, nullptr, 16);
 
   // Remove the CRC from the check.
   std::string msg = response.substr(0, response.size() - 4);
@@ -351,90 +350,79 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
 
   // Debug output reponse up to scan data.
   RCLCPP_DEBUG(logger_, "Response: %s", response.substr(0, 44).c_str());
-  // Decode the result if crc checks out.
-  // Grab the status
-  ss.clear();
-  RCLCPP_DEBUG(logger_, "Status: %s", response.substr(8, 2).c_str());
-  ss << response.substr(8, 2);  // Status is 8th position 2 chars.
-  ss >> std::hex >> status.status;
 
+  // Grab the status
+  s = response.substr(8, 2);
+  status.status = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Status: 0x%s = %d", s.c_str(), status.status);
   if (status.status != 0) {
     RCLCPP_WARN(logger_, "Received bad status");
     return false;
   }
-
   // Grab the operating mode
-  ss.clear();
-  RCLCPP_DEBUG(logger_, "Operating mode: %s", response.substr(10, 1).c_str());
-  ss << response.substr(10, 1);
-  ss >> std::hex >> status.operating_mode;
+  s = response.substr(10, 1);
+  status.operating_mode = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Operating mode: 0x%s = %d", s.c_str(), status.operating_mode);
 
   // Grab the area number
-  ss.clear();
-  ss << response.substr(11, 2);
-  RCLCPP_DEBUG(logger_, "Area Number: %s", response.substr(11, 2).c_str());
-  ss >> std::hex >> status.area_number;
-  // Per documentation add 1 to offset area number
-  status.area_number++;
+  s = response.substr(11, 2);
+  status.area_number = std::stoul(s, nullptr, 16);
+  status.area_number++;   // adding 1 according to documentation
+  RCLCPP_DEBUG(logger_, "Area number: 0x%s = %d (+1)", s.c_str(), status.area_number);
 
   // Grab the Error Status
-  ss.clear();
-  ss << response.substr(13, 1);
-  RCLCPP_DEBUG(logger_, "Error status: %s", response.substr(13, 1).c_str());
-  ss >> std::hex >> status.error_status;
-
+  s = response.substr(13, 1);
+  status.error_status = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Error status: 0x%s = %d", s.c_str(), status.error_status);
 
   // Grab the error code
-  ss.clear();
-  ss << response.substr(14, 2);
-  RCLCPP_DEBUG(logger_, "Error code: %s", response.substr(14, 2).c_str());
-  ss >> std::hex >> status.error_code;
+  s = response.substr(14, 2);
+  status.error_code = std::stoul(s, nullptr, 16);
   // Offset by 0x40 is non-zero as per documentation
   if (status.error_code != 0) {
     status.error_code += 0x40;
   }
+  RCLCPP_DEBUG(logger_, "Error code: 0x%s = 0x%x (+0x40 if > 0) = %d",
+          s.c_str(), status.error_code, status.error_code);
 
   // Get the lockout status
-  ss.clear();
-  ss << response.substr(16, 1);
-  RCLCPP_DEBUG(logger_, "Lockout: %s", response.substr(16, 1).c_str());
-  ss >> std::hex >> status.lockout_status;
+  status.lockout_status = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Lockout: 0x%s = %d", s.c_str(), status.lockout_status);
 
-  ss.clear();
-  ss << response.substr(17, 1);
-  RCLCPP_DEBUG(logger_, "OSSD 1 State: %s", response.substr(17, 1).c_str());
+  uint16_t unused0;
 
-  ss.clear();
-  ss << response.substr(18, 1);
-  RCLCPP_DEBUG(logger_, "OSSD 2 State: %s", response.substr(18, 1).c_str());
+  s = response.substr(17, 1);
+  unused0 = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "OSSD 1: 0x%s = %d", s.c_str(), unused0);
 
-  ss.clear();
-  ss << response.substr(19, 1);
-  RCLCPP_DEBUG(logger_, "Warning 1 State: %s", response.substr(19, 1).c_str());
+  s = response.substr(18, 1);
+  unused0 = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "OSSD 2: 0x%s = %d", s.c_str(), unused0);
 
-  ss.clear();
-  ss << response.substr(20, 1);
-  RCLCPP_DEBUG(logger_, "Warning 2 State: %s", response.substr(20, 1).c_str());
+  s = response.substr(19, 1);
+  unused0 = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Warning 1: 0x%s = %d", s.c_str(), unused0);
 
-  ss.clear();
-  ss << response.substr(33, 8);
-  RCLCPP_DEBUG(logger_, "Time Stamp: %s", response.substr(33, 8).c_str());
+  s = response.substr(20, 1);
+  unused0 = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Warning 2: 0x%s = %d", s.c_str(), unused0);
 
-  ss.clear();
-  ss << response.substr(41, 1);
-  RCLCPP_DEBUG(logger_, "Laser Off: %s", response.substr(41, 1).c_str());
+  s = response.substr(33, 8);
+  RCLCPP_DEBUG(logger_, "Timestamp: 0x%s", s.c_str());
+
+  s = response.substr(41, 1);
+  unused0 = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Laser off: 0x%s = %d", s.c_str(), unused0);
 
   // Get optical window contamination warning
-  {
-    std::stringstream ss2;
-    ss2 << response.substr(42, 1);
-    RCLCPP_DEBUG(logger_, "Opt. Window Contamination: \"%s\"", response.substr(42, 1).c_str());
-    ss2 >> std::hex >> status.optical_window_contaminated;
-  }
+  s = response.substr(42, 1);
+  status.optical_window_contaminated = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Optical window contaminated: 0x%s = %d",
+          s.c_str(), status.optical_window_contaminated);
 
-  ss.clear();
-  ss << response.substr(43, 1);
-  RCLCPP_DEBUG(logger_, "Encoder Pattern: %s", response.substr(43, 1).c_str());
+  s = response.substr(43, 1);
+  unused0 = std::stoul(s, nullptr, 16);
+  RCLCPP_DEBUG(logger_, "Encoder pattern: 0x%s = %d", s.c_str(), unused0);
 
   return true;
 }
