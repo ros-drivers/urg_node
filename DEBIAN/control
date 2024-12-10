@@ -1,8 +1,0 @@
-Package: ros-galactic-urg-node
-Version: 102-patricdev
-Maintainer: Patrick Jakubowski <patrick.jakubowski@ubica-robotics.eu>
-Description: urg_node with optical_window_contamination in topic (patrickdev)
-Section: misc
-Depends: libc6 (>= 2.14), libgcc-s1 (>= 3.0), libstdc++6 (>= 9), ros-galactic-console-bridge-vendor, libboost-dev, ros-galactic-builtin-interfaces, ros-galactic-diagnostic-updater, ros-galactic-laser-proc, ros-galactic-rclcpp, ros-galactic-rclcpp-components, ros-galactic-rosidl-default-generators, ros-galactic-sensor-msgs, ros-galactic-std-srvs, ros-galactic-urg-c, ros-galactic-urg-node-msgs
-Priority: optional
-Architecture: amd64
