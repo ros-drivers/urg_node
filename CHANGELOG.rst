@@ -2,6 +2,15 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.1 (2023-03-18)
+------------------
+* add branch information
+* add license file, same as ROS1
+* increased delay in diagnostics thread to slow down publish rate (`#102 <https://github.com/ros-drivers/urg_node/issues/102>`_)
+  This is just a quick PR to increase the thread sleep in the diagnostics thread. Currently the diagnostics status is updated at ~96hz. Which is way too fast and really messes with the Frequency Status Monitor which jumps between too low and too high
+* Added URDF for UST10. (`#103 <https://github.com/ros-drivers/urg_node/issues/103>`_)
+* Contributors: Michael Ferguson, Richard, Tony Baltovski
+
 1.1.0 (2021-03-31)
 ------------------
 * Merge pull request `#86 <https://github.com/ros-drivers/urg_node/issues/86>`_ from ros-drivers/clalancette/galactic-fixes

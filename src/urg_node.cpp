@@ -50,6 +50,9 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   error_count_(0),
   error_limit_(4),
   lockout_status_(false),
+  system_latency_(std::chrono::seconds(0)),
+  user_latency_(std::chrono::seconds(0)),
+  is_started_(false),
   close_diagnostics_(true),
   close_scan_(true),
   ip_address_(""),
@@ -326,6 +329,8 @@ void UrgNode::calibrate_time_offset()
     RCLCPP_INFO(this->get_logger(), "Starting calibration. This will take a few seconds.");
     RCLCPP_WARN(this->get_logger(), "Time calibration is still experimental.");
     rclcpp::Duration latency = urg_->computeLatency(10);
+    system_latency_ = urg_->getComputedLatency();
+    user_latency_ = urg_->getUserLatency();
     RCLCPP_INFO(
       this->get_logger(), "Calibration finished. Latency is: %.4f sec.",
       (double)(latency.nanoseconds() * 1e-9));
@@ -354,15 +359,15 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
     return;
   }
 
-  if (!urg_->getIPAddress().empty()) {
-    stat.add("IP Address", urg_->getIPAddress());
-    stat.add("IP Port", urg_->getIPPort());
+  if (!ip_address_.empty()) {
+    stat.add("IP Address", ip_address_);
+    stat.add("IP Port", ip_port_);
   } else {
-    stat.add("Serial Port", urg_->getSerialPort());
-    stat.add("Serial Baud", urg_->getSerialBaud());
+    stat.add("Serial Port", serial_port_);
+    stat.add("Serial Baud", serial_baud_);
   }
 
-  if (!urg_->isStarted()) {
+  if (!is_started_) {
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Not Connected: " + device_status_);
@@ -394,8 +399,8 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
   stat.add("Firmware Date", firmware_date_);
   stat.add("Protocol Version", protocol_version_);
   stat.add("Device ID", device_id_);
-  stat.add("Computed Latency", urg_->getComputedLatency().nanoseconds());
-  stat.add("User Time Offset", urg_->getUserTimeOffset().nanoseconds());
+  stat.add("Computed Latency", system_latency_.nanoseconds());
+  stat.add("User Time Offset", user_latency_.nanoseconds());
 
   // Things not explicitly required by REP-0138, but still interesting.
   stat.add("Device Status", device_status_);
@@ -512,6 +517,7 @@ void UrgNode::scanThread()
       }
       device_status_ = urg_->getSensorStatus();
       urg_->start();
+      is_started_ = true;
       RCLCPP_INFO(this->get_logger(), "Streaming data.");
       // Clear the error count.
       error_count_ = 0;
@@ -531,6 +537,7 @@ void UrgNode::scanThread()
       // Don't allow external access during grabbing the scan.
       try {
         std::unique_lock<std::mutex> lock(lidar_mutex_);
+        is_started_ = urg_->isStarted();
         if (publish_multiecho_) {
           sensor_msgs::msg::MultiEchoLaserScan msg;
           if (urg_->grabScan(msg)) {

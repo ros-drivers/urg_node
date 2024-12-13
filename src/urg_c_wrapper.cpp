@@ -327,6 +327,11 @@ bool URGCWrapper::getAR00Status(URGStatus & status)
   // Get the response
   std::string response = sendCommand(str_cmd);
 
+  if (response.empty()) {
+    RCLCPP_WARN(logger_, "Received empty response from AR00 command");
+    return false;
+  }
+
   RCLCPP_DEBUG(logger_, "Full response: %s", response.c_str());
 
   // Strip STX and ETX before calculating the CRC.
@@ -413,6 +418,11 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
 
   // Get the response
   std::string response = sendCommand(str_cmd);
+
+  if (response.empty()) {
+    RCLCPP_WARN(logger_, "Received empty response from DL00 command");
+    return false;
+  }
 
   RCLCPP_DEBUG(logger_, "Full response: %s", response.c_str());
 
@@ -559,11 +569,11 @@ std::string URGCWrapper::sendCommand(std::string cmd)
 
   // All serial command structures start with STX + LEN as
   // the first 5 bytes, read those in.
-  size_t total_read_len = 0;
-  size_t read_len = 0;
+  ssize_t total_read_len = 0;
+  ssize_t read_len = 0;
   // Read in the header, make sure we get all 5 bytes expcted
   char recvb[5] = {0};
-  size_t expected_read = 5;
+  ssize_t expected_read = 5;
   while (total_read_len < expected_read) {
     read_len = read(sock, recvb + total_read_len, expected_read - total_read_len);  // READ STX
     total_read_len += read_len;
@@ -752,7 +762,7 @@ rclcpp::Duration URGCWrapper::getComputedLatency() const
   return system_latency_;
 }
 
-rclcpp::Duration URGCWrapper::getUserTimeOffset() const
+rclcpp::Duration URGCWrapper::getUserLatency() const
 {
   return user_latency_;
 }
