@@ -165,7 +165,7 @@ public:
 
   rclcpp::Duration getComputedLatency() const;
 
-  rclcpp::Duration getUserTimeOffset() const;
+  rclcpp::Duration getUserLatency() const;
 
   std::string getSensorStatus();
 

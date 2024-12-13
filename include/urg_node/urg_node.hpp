@@ -40,6 +40,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <atomic>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/publisher.hpp"
@@ -127,7 +128,9 @@ private:
   int error_count_;
   int error_limit_;
   bool lockout_status_;
-
+  rclcpp::Duration system_latency_;
+  rclcpp::Duration user_latency_;
+  std::atomic_bool is_started_;
   double freq_min_;
   bool close_diagnostics_;
   bool close_scan_;
