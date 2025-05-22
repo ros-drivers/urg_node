@@ -539,7 +539,7 @@ void UrgNode::scanThread()
       srv_.reset(new dynamic_reconfigure::Server<urg_node::URGConfig>(pnh_));
       // Configure limits (Must do this after creating the urgwidget)
       update_reconfigure_limits();
-      srv_->setCallback(boost::bind(&UrgNode::reconfigure_callback, this, _1, _2));
+      srv_->setCallback([this](auto cfg, int lvl){ return reconfigure_callback(cfg, lvl); });
     }
 
     // Before starting, update the status
