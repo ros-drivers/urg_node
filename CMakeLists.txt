@@ -37,16 +37,17 @@ target_include_directories(urg_node
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(urg_node
-  diagnostic_updater
-  laser_proc
-  rclcpp
-  rclcpp_components
-  sensor_msgs
-  std_srvs
-  urg_c
-  urg_node_msgs
-  Boost
+target_link_libraries(urg_node PUBLIC
+  ${laser_proc_LIBRARIES}
+  ${sensor_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${urg_c_LIBRARIES}
+  ${urg_node_msgs_TARGETS}
+  diagnostic_updater::diagnostic_updater
+  rclcpp::rclcpp
+  rclcpp_components::component
+  rclcpp_components::component_manager
+  sensor_msgs::sensor_msgs_library
 )
 rclcpp_components_register_node(urg_node
   PLUGIN "urg_node::UrgNode"
