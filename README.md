@@ -3,11 +3,11 @@ urg_node
 
 ### Branches
 
+- ROS2:
+   - Kilted, Rolling: [ros2-devel](https://github.com/ros-drivers/urg_node/tree/ros2-devel)
+   - Humble, Jazzy: [jazzy](https://github.com/ros-drivers/urg_node/tree/jazzy)
  - ROS1:
    - Melodic & Noetic: [melodic-devel](https://github.com/ros-drivers/urg_node/tree/melodic-devel)
-   - Kinetic: [kinetic-devel](https://github.com/ros-drivers/urg_node/tree/kinetic-devel)
-- ROS2:
-   - Galactic, Humble, Rolling: [ros2-devel](https://github.com/ros-drivers/urg_node/tree/ros2-devel)
 
 ### LaserScan Visualization
 
