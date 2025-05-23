@@ -2,8 +2,8 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.2 (2025-05-23)
+------------------
 * README syntax updates (`#112 <https://github.com/ros-drivers/urg_node/issues/112>`_)
   Updates to ROS 2 syntax and minor rewording. I also moved RViz to the
   visualization section.
