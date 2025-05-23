@@ -2,6 +2,51 @@
 Changelog for package urg_node
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* README syntax updates (`#112 <https://github.com/ros-drivers/urg_node/issues/112>`_)
+  Updates to ROS 2 syntax and minor rewording. I also moved RViz to the
+  visualization section.
+  Fixes `#79 <https://github.com/ros-drivers/urg_node/issues/79>`_
+* Prevent diagnostics segfault by accessing empty urg\_ pointer (`#107 <https://github.com/ros-drivers/urg_node/issues/107>`_)
+  This PR prevents a potential segfault in the populateDiagnostics
+  function, when the driver disconnects the urg\_ pointer is reset. If the
+  diagnostics function is in the middle of execution (it runs in a
+  separate thread) at the time it will try to call a function on an empty
+  pointer. This happened more frequently before
+  [PR-102](https://github.com/ros-drivers/urg_node/pull/102) but it still
+  could potentially happen.
+  The populateDiagnostics function is accessing urg\_ for things that are
+  static or it already has access to via local variables so I've just
+  refactored the function so it only accesses urg\_ to check if it exists.
+* Fixed signed to unsigned conversion error in sendCommand (`#105 <https://github.com/ros-drivers/urg_node/issues/105>`_)
+  Fixes a bug in the
+  [sendCommand](https://github.com/ros-drivers/urg_node/blob/1166ab25aab1d085183f7f6de42d3bf562c127a7/src/urg_c_wrapper.cpp#L328)
+  function, socket read returns a sstize_t which was being converted to an
+  unsigned (size_t).
+  If a read error occurs it will return -1 which is converted to SIZE_MAX
+  (18446744073709551615 on our machines) and then added to the
+  total_read_len which wraps around to same value it had already (so the
+  loop termination condition is never reached) and also fools the error if
+  statement because it's greater than 0.
+* Empty return value from sendCommand causes a crash (`#104 <https://github.com/ros-drivers/urg_node/issues/104>`_)
+  A quick bug fix, I found that an error in the
+  [sendCommand](https://github.com/ros-drivers/urg_node/blob/1166ab25aab1d085183f7f6de42d3bf562c127a7/src/urg_c_wrapper.cpp#L328)
+  function in urg_c_wrapper returns an empty string. However none of the
+  callers are checking for an empty string so this results in an unhandled
+  std::out_of_range exception:
+  ```
+  [urg_node_driver-25] [ERROR 1679511084.962595117] [urg_node_front_left_node]: Buffer creation bounds exceeded, shouldn't allocate: 4294967291 bytes (sendCommand() at /root/v2.0.6/src/urg_node/src/urg_c_wrapper.cpp:597)
+  [urg_node_driver-25] terminate called after throwing an instance of 'std::out_of_range'
+  [urg_node_driver-25]   what():  basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)
+  [ERROR] [urg_node_driver-25]: process has died [pid 42882, exit code -6, cmd '/
+  ```
+  This PR just adds an empty string check in the two callers to prevent
+  the crash. There are probably not many people using the detailed status
+  but we're using it on the UAM-05LP-T301 to get the error codes so very
+  useful to get this fixed.
+* Contributors: Matthew Foran, Richard Williams
+
 1.1.1 (2023-03-18)
 ------------------
 * add branch information
