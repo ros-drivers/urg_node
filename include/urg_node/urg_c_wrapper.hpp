@@ -63,6 +63,12 @@ public:
     error_status = false;
     error_code = 0;
     lockout_status = false;
+    ossd_1 = false;
+    ossd_2 = false;
+    warn_1 = false;
+    warn_2 = false;
+    ossd_3 = false;
+    ossd_4 = false;
   }
 
   uint16_t status;
@@ -71,6 +77,12 @@ public:
   bool error_status;
   uint16_t error_code;
   bool lockout_status;
+  bool ossd_1;
+  bool ossd_2;
+  bool warn_1;
+  bool warn_2;
+  bool ossd_3;
+  bool ossd_4;
 };
 
 class UrgDetectionReport
