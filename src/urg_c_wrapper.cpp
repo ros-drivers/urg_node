@@ -69,6 +69,11 @@ URGCWrapper::URGCWrapper(
     ss << "Could not open network Hokuyo:\n";
     ss << ip_address_ << ":" << ip_port_ << "\n";
     ss << urg_error(&urg_);
+    // urg_open leaves the TCP socket open when the connection succeeds but
+    // the SCIP handshake or parameter read fails. The destructor never runs
+    // for a throwing constructor, so close it here: a Hokuyo UST serves one
+    // client, and a leaked socket refuses every later reconnect.
+    urg_close(&urg_);
     throw std::runtime_error(ss.str());
   }
 
