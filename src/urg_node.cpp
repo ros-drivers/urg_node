@@ -33,6 +33,7 @@
 
 #include "urg_node/urg_node.hpp"
 
+#include <csignal>
 #include <memory>
 #include <string>
 #include <vector>
@@ -74,6 +75,11 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   service_yield_(true)
 {
   (void) synchronize_time_;
+  // urg_c writes to the Hokuyo socket without MSG_NOSIGNAL. When the peer
+  // resets the connection, the next write raises SIGPIPE, whose default
+  // action kills the driver before its reconnect logic runs. Ignored, the
+  // write fails with EPIPE and the scan loop reconnects.
+  std::signal(SIGPIPE, SIG_IGN);
   initSetup();
 }
 
